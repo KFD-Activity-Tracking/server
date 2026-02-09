@@ -1,3 +1,23 @@
 spring:
   application:
     name: activitytracker
+
+  # Database connection
+  datasource:
+    url: jdbc:mysql://localhost:3306/library
+    username: root
+    password: akslfdn123icjpk10923
+    # MySQL driver
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # Hibernate/JPA settings
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    show-sql: true
+
+
+
+server:
+  port: 8765
