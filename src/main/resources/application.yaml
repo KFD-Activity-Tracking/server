@@ -4,7 +4,7 @@ spring:
 
   # Database connection
   datasource:
-    url: jdbc:mysql://localhost:3306/library
+    url: jdbc:mysql://localhost:3306/activity_tracker
     username: root
     password: akslfdn123icjpk10923
     # MySQL driver
