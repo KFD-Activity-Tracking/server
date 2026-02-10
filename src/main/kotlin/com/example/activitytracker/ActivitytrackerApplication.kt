@@ -29,6 +29,9 @@ fun main(args: Array<String>) {
 @RestController
 @RequestMapping("/hello")
 class helloW {
+    init{
+        println("http://localhost:8765/hello/world")
+    }
     @GetMapping("/world")
     fun helloworld() = "Hello world!"
 }
