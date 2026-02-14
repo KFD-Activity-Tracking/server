@@ -13,6 +13,8 @@ import jakarta.persistence.ManyToMany
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.MappedSuperclass
 import jakarta.persistence.Table
+import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 
 @MappedSuperclass
@@ -30,8 +32,9 @@ open class IdCreatedAtBaseTable{
 @Entity
 @Table(name = "user_")
 class User (
-    name: String,
-    role: String,
+    var name: String,
+    var role: String,
+    var passwordHash: String,
 ) : IdCreatedAtBaseTable() {
     @ManyToMany
     @JoinTable(
@@ -118,6 +121,9 @@ open class Action() {
 
     @Column(name="performed_at")
     var performed_at : LocalDateTime = LocalDateTime.now()
+
+    @Column(name="user_id")
+    var user_id : Long = 0
 
 }
 

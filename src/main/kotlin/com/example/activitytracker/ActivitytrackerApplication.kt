@@ -44,6 +44,11 @@ class HelloError(
 ) : Exception()
 
 
+@ResponseStatus(HttpStatus.NOT_FOUND)
+class NotFoundError(
+    val error: String
+) : Exception()
+
 
 
 @ControllerAdvice
