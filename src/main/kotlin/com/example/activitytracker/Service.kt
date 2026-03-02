@@ -19,6 +19,14 @@ interface Authentificate{
     fun hashPassword(password: String): String
 }
 
+
+@Component
+class AuthentificateImpl : Authentificate{
+    override fun hashPassword(password: String): String{
+        return password
+    }
+}
+
 @Component
 class UserServiceImpl (
     var userDao : UserRepository,

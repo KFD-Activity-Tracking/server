@@ -1,7 +1,11 @@
 package com.example.activitytracker
 
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.boot.context.properties.ConfigurationProperties
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.runApplication
+import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ControllerAdvice
@@ -14,6 +18,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler
 
 @SpringBootApplication
+@ConfigurationPropertiesScan
 class ActivitytrackerApplication
 
 fun main(args: Array<String>) {
@@ -21,19 +26,21 @@ fun main(args: Array<String>) {
 }
 
 
-
-
-
-
+@ConfigurationProperties("what-to-answer-to-hw")
+class WhatToAnswerToHw (
+    val answer: String
+)
 
 @RestController
 @RequestMapping("/hello")
-class helloW {
+class HelloW {
+    @Autowired
+    lateinit var data: WhatToAnswerToHw
     init{
         println("http://localhost:8765/hello/world")
     }
     @GetMapping("/world")
-    fun helloworld() = "Hello world!"
+    fun helloworld() = data.answer
 }
 
 

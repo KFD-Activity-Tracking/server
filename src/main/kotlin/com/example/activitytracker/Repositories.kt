@@ -2,10 +2,11 @@ package com.example.activitytracker
 
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.CrudRepository
+import org.springframework.data.repository.NoRepositoryBean
 import org.springframework.stereotype.Repository
 
 
-
+@NoRepositoryBean
 interface LongKeyRepository<T> : CrudRepository<T, Long>
 
 
