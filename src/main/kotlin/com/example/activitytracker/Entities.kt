@@ -52,7 +52,8 @@ class User (
 @Table(name = "statistics")
 class Statistics(
 
-) {
+)
+{
 
     @Column(name="id")
     @Id

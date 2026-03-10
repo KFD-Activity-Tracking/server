@@ -8,7 +8,7 @@ import kotlin.jvm.optionals.getOrElse
 
 interface UserService {
     fun getUserById(id: Long): User?
-    fun getAllUsers(): List<String>
+    fun getAllUsers(): List<User>
     fun getUsersByName(name: String): List<String>
     fun createUser(user: CreateUserDto, password: String): User
     fun deleteUser(user: User)
@@ -31,11 +31,12 @@ class AuthentificateImpl : Authentificate{
 class UserServiceImpl (
     var userDao : UserRepository,
     var authentificationEntity: Authentificate,
-) : UserService {
+) :
+    UserService {
 
     override fun getUserById(id: Long): User? = userDao.findById(id).getOrElse { throw NotFoundError("no user with id $id") }
 
-    override fun getAllUsers(): List<String> = userDao.findAll().map { user -> user.name }.toList()
+    override fun getAllUsers(): List<User> = userDao.findAll().map { it ?: throw NotFoundError("findAllUsers failed in user service") }
 
     // Should be done with a query
     override fun getUsersByName(name: String): List<String> = userDao.findAll().filter { it.name.contains(name) }.map { it.name }.toList()
@@ -68,7 +69,8 @@ interface ActionService {
 @Component
 class ActionServiceImpl(
     var actionDao: ActionRepository,
-) : ActionService {
+) :
+    ActionService {
 
     override fun addMouseAction(act: MouseAction) = actionDao.save(act)
 

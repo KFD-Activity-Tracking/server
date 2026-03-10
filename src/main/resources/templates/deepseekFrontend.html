@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Tracker Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: opacity 0.3s;
+            width: 100%;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button.secondary {
+            background: #6c757d;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .action-buttons button {
+            flex: 1;
+        }
+
+        .data-table {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .role-admin { background: #dc3545; color: white; }
+        .role-user { background: #28a745; color: white; }
+        .role-manager { background: #ffc107; color: #333; }
+        .role-guest { background: #6c757d; color: white; }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .action-details {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .debug-info {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📊 Activity Tracker Dashboard</h1>
+
+    <div id="messageContainer"></div>
+
+    <div class="dashboard">
+        <!-- Add User Card -->
+        <div class="card">
+            <h2>➕ Add New User</h2>
+            <form id="addUserForm">
+                <div class="form-group">
+                    <label for="userName">Name:</label>
+                    <input type="text" id="userName" required placeholder="Enter user name">
+                </div>
+                <div class="form-group">
+                    <label for="userRole">Role:</label>
+                    <select id="userRole" required>
+                        <option value="">Select role</option>
+                        <option value="ROLE_ADMIN">Admin</option>
+                        <option value="ROLE_USER">User</option>
+                        <option value="ROLE_USER">Manager</option>
+                        <option value="ROLE_USER">Guest</option>
+                    </select>
+                </div>
+                <button type="submit">Add User</button>
+            </form>
+            <div class="debug-info">
+                <strong>Debug:</strong> Sending to /api/users/add as JSON: {"name": "...", "role": "..."}
+            </div>
+        </div>
+
+        <!-- Add Actions Card -->
+        <div class="card">
+            <h2>🎯 Add Actions</h2>
+            <form id="addActionsForm">
+                <div class="form-group">
+                    <label for="actionUserId">User ID:</label>
+                    <input type="number" id="actionUserId" required placeholder="Enter user ID">
+                </div>
+
+                <div class="form-group">
+                    <label for="actionType">Action Type:</label>
+                    <select id="actionType" required>
+                        <option value="">Select action type</option>
+                        <option value="MOUSE">Mouse Movement</option>
+                        <option value="KEYBOARD">Keyboard Action</option>
+                        <option value="APP">App Action</option>
+                    </select>
+                </div>
+
+                <div id="mouseFields" class="action-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="deltaX">Delta X:</label>
+                        <input type="number" id="deltaX" value="10" placeholder="X movement">
+                    </div>
+                    <div class="form-group">
+                        <label for="deltaY">Delta Y:</label>
+                        <input type="number" id="deltaY" value="10" placeholder="Y movement">
+                    </div>
+                </div>
+
+                <div id="keyboardFields" class="action-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="keyCode">Key Code:</label>
+                        <input type="number" id="keyCode" value="65" placeholder="Enter key code (e.g., 65 for 'A')">
+                    </div>
+                </div>
+
+                <div id="appFields" class="action-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="appName">App Name:</label>
+                        <input type="text" id="appName" value="Test App" placeholder="Enter application name">
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button type="submit">Add Single Action</button>
+                    <button type="button" id="addMultipleBtn" class="secondary">Add Multiple (3x)</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Quick Actions Card -->
+        <div class="card">
+            <h2>⚡ Quick Actions</h2>
+            <div class="form-group">
+                <label for="quickUserId">User ID:</label>
+                <input type="number" id="quickUserId" placeholder="Enter user ID">
+            </div>
+            <button onclick="loadUserActions()" style="margin-bottom: 10px;">View User Actions</button>
+            <button onclick="loadAllUsers()" class="secondary">Refresh Users List</button>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="data-table">
+        <h2 style="margin-bottom: 20px;">👥 Users List</h2>
+        <table id="usersTable">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Created At</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody id="usersTableBody">
+            <tr>
+                <td colspan="5" class="loading">Loading users...</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Actions Table -->
+    <div class="data-table" style="margin-top: 20px;">
+        <h2 style="margin-bottom: 20px;">📋 Actions List</h2>
+        <table id="actionsTable">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>User ID</th>
+                <th>Type</th>
+                <th>Details</th>
+                <th>Performed At</th>
+            </tr>
+            </thead>
+            <tbody id="actionsTableBody">
+            <tr>
+                <td colspan="5" class="loading">Select a user to view actions</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const API_BASE = '';
+
+    // Show message function
+    function showMessage(message, isError = false, errorDetails = null) {
+        const container = document.getElementById('messageContainer');
+        const div = document.createElement('div');
+        div.className = isError ? 'error' : 'success';
+
+        let displayMessage = message;
+        if (errorDetails) {
+            displayMessage += '\n\nDetails: ' + JSON.stringify(errorDetails, null, 2);
+        }
+
+        div.textContent = displayMessage;
+        container.innerHTML = '';
+        container.appendChild(div);
+
+        // Log to console for debugging
+        if (isError) {
+            console.error('Error:', message, errorDetails);
+        }
+
+        setTimeout(() => div.remove(), 8000);
+    }
+
+    // Handle action type selection
+    document.getElementById('actionType').addEventListener('change', function() {
+        document.querySelectorAll('.action-fields').forEach(field => field.style.display = 'none');
+
+        switch(this.value) {
+            case 'MOUSE':
+                document.getElementById('mouseFields').style.display = 'block';
+                break;
+            case 'KEYBOARD':
+                document.getElementById('keyboardFields').style.display = 'block';
+                break;
+            case 'APP':
+                document.getElementById('appFields').style.display = 'block';
+                break;
+        }
+    });
+
+    // Load all users on page load
+    window.onload = function() {
+        loadAllUsers();
+    };
+
+    // Load all users
+    async function loadAllUsers() {
+        try {
+            const response = await fetch('/api/users/all');
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+            const users = await response.json();
+
+            const tbody = document.getElementById('usersTableBody');
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="loading">No users found</td></tr>';
+            } else {
+                tbody.innerHTML = users.map(user => `
+                    <tr>
+                        <td>${user.id}</td>
+                        <td>${user.name || 'N/A'}</td>
+                        <td><span class="role-badge role-${(user.role || 'user').toLowerCase()}">${user.role || 'USER'}</span></td>
+                        <td>${user.createdAt ? new Date(user.createdAt).toLocaleString() : 'N/A'}</td>
+                        <td>
+                            <button onclick="loadUserActions(${user.id})" style="padding: 5px 10px; font-size: 12px;">
+                                View Actions
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        } catch (error) {
+            showMessage('Error loading users: ' + error.message, true);
+            document.getElementById('usersTableBody').innerHTML =
+                '<tr><td colspan="5" class="loading">Error loading users</td></tr>';
+        }
+    }
+
+    // Load user actions
+    async function loadUserActions(userId = null) {
+        const id = userId || document.getElementById('quickUserId').value;
+        if (!id) {
+            showMessage('Please enter a User ID', true);
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/actions/from/${id}`);
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+            const actions = await response.json();
+
+            const tbody = document.getElementById('actionsTableBody');
+            if (actions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="loading">No actions found for this user</td></tr>';
+            } else {
+                tbody.innerHTML = actions.map(action => {
+                    let type = 'Unknown';
+                    let details = '';
+
+                    // Check action type based on properties
+                    if (action.delta_x !== undefined) {
+                        type = 'Mouse';
+                        details = `ΔX: ${action.delta_x}, ΔY: ${action.delta_y}`;
+                    } else if (action.keyboard_key !== undefined) {
+                        type = 'Keyboard';
+                        details = `Key: ${action.keyboard_key}`;
+                    } else if (action.app_name !== undefined) {
+                        type = 'App';
+                        details = `App: ${action.app_name}`;
+                    }
+
+                    return `
+                        <tr>
+                            <td>${action.id}</td>
+                            <td>${action.user_id}</td>
+                            <td>${type}</td>
+                            <td class="action-details">${details}</td>
+                            <td>${action.performed_at ? new Date(action.performed_at).toLocaleString() : 'N/A'}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        } catch (error) {
+            showMessage('Error loading actions: ' + error.message, true);
+        }
+    }
+
+    // Add user form submission
+    document.getElementById('addUserForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const userData = {
+            name: document.getElementById('userName').value,
+            role: document.getElementById('userRole').value
+        };
+
+        try {
+            console.log('Sending user data:', JSON.stringify(userData));
+
+            const response = await fetch('/api/users/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(userData)
+            });
+
+            // Try to get the response as text first
+            const responseText = await response.text();
+            console.log('Raw response:', responseText);
+
+            if (!response.ok) {
+                // Try to parse as JSON, but if it fails, show the raw text
+                let errorDetails;
+                try {
+                    errorDetails = JSON.parse(responseText);
+                } catch {
+                    errorDetails = responseText;
+                }
+                throw new Error(`Server error (${response.status}): ${JSON.stringify(errorDetails)}`);
+            }
+
+            // Try to parse successful response
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch {
+                result = responseText;
+            }
+
+            showMessage('User added successfully!');
+            this.reset();
+            loadAllUsers();
+        } catch (error) {
+            showMessage('Error adding user: ' + error.message, true);
+        }
+    });
+
+    // Add single action
+    document.getElementById('addActionsForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        await addActions(1);
+    });
+
+    // Add multiple actions
+    document.getElementById('addMultipleBtn').addEventListener('click', async function() {
+        await addActions(3);
+    });
+
+    // Helper function to add actions
+    async function addActions(count) {
+        const userId = document.getElementById('actionUserId').value;
+        const actionType = document.getElementById('actionType').value;
+
+        if (!userId || !actionType) {
+            showMessage('Please select user ID and action type', true);
+            return;
+        }
+
+        const actions = [];
+        const now = new Date().toISOString();
+
+        for (let i = 0; i < count; i++) {
+            let action = {
+                user_id: parseInt(userId),
+                performed_at: now
+            };
+
+            switch(actionType) {
+                case 'MOUSE':
+                    action.delta_x = parseInt(document.getElementById('deltaX').value) || (i + 1) * 10;
+                    action.delta_y = parseInt(document.getElementById('deltaY').value) || (i + 1) * 10;
+                    break;
+                case 'KEYBOARD':
+                    action.keyboard_key = parseInt(document.getElementById('keyCode').value) || 65 + i;
+                    break;
+                case 'APP':
+                    action.app_name = document.getElementById('appName').value || `Test App ${i + 1}`;
+                    break;
+            }
+
+            actions.push(action);
+        }
+
+        try {
+            console.log('Sending actions:', JSON.stringify(actions));
+
+            const response = await fetch('/api/actions/addAll', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(actions)
+            });
+
+            const responseText = await response.text();
+            console.log('Actions response:', responseText);
+
+            if (!response.ok) {
+                let errorDetails;
+                try {
+                    errorDetails = JSON.parse(responseText);
+                } catch {
+                    errorDetails = responseText;
+                }
+                throw new Error(`Server error (${response.status}): ${JSON.stringify(errorDetails)}`);
+            }
+
+            showMessage(`${count} action(s) added successfully!`);
+
+            // Refresh actions if the current user is selected
+            if (document.getElementById('quickUserId').value === userId) {
+                loadUserActions(userId);
+            }
+        } catch (error) {
+            showMessage('Error adding actions: ' + error.message, true);
+        }
+    }
+</script>
+</body>
+</html>

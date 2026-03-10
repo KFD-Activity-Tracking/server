@@ -9,6 +9,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
 
     kotlin("plugin.noarg") version plugin_version
+    kotlin("plugin.jpa") version plugin_version
 }
 
 group = "com.example"
