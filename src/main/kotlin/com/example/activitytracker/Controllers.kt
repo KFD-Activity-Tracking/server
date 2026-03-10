@@ -1,5 +1,8 @@
 package com.example.activitytracker
 
+import com.example.activitytracker.Services.ActionService
+import com.example.activitytracker.Services.StatisticsService
+import com.example.activitytracker.Services.UserService
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -42,6 +45,23 @@ class ActionController(
 
 }
 
+
+
+//Not tested Yet
+@RestController
+@RequestMapping("/api/statistics")
+class StatisticsController(
+    val statisticsService: StatisticsService,
+) {
+
+    @GetMapping("/from/{userId}")
+    fun getStatisticsFromUser(@PathVariable userId: Long) = statisticsService.getAllFromUser(userId)
+
+    @PostMapping("/debug/collect/{userId}")
+    fun collectStatistics(@PathVariable userId : Long) =
+        statisticsService.collectStatsForUser(userId)
+
+}
 
 
 

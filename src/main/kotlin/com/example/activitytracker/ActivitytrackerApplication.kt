@@ -7,6 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.runApplication
 import org.springframework.http.HttpStatus
+import org.springframework.stereotype.Component
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -28,13 +29,6 @@ fun main(args: Array<String>) {
 }
 
 
-@ConfigurationProperties("what-to-answer-to-hw")
-class WhatToAnswerToHw (
-    val answer: String
-)
-
-
-
 open class SuperWebError(
     val error: String,
     val type: Class<*>,
@@ -51,6 +45,8 @@ open class SuperWebError(
 
 
 }
+
+
 
 
 @ResponseStatus(HttpStatus.BAD_REQUEST)

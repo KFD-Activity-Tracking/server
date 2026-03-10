@@ -1,6 +1,7 @@
 package com.example.activitytracker
 
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -10,6 +11,13 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.name
+
+
+
+@ConfigurationProperties("what-to-answer-to-hw")
+class WhatToAnswerToHw (
+    val answer: String
+)
 
 
 @RestController
@@ -39,6 +47,7 @@ class HttpFrontend{
         return "deepseekFrontend"
     }
 
+    @ResponseBody
     @GetMapping("/paths")
     fun getPaths() : String{
         val pth = Paths.get("")
