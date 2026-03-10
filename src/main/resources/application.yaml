@@ -4,14 +4,14 @@ spring:
 
   # Database connection
   datasource:
-    url: ${DB_URL:jdbc:h2:mem:ktornormal;MODE=MySQL}  # Added MODE=MySQL
+    url: ${DB_URL:jdbc:h2:mem:activitytracker;MODE=MySQL}  # Added MODE=MySQL
     username: ${DB_USER:user}
     password: ${DB_PASSWORD:}
     # MySQL driver
 
     # uncom the right one
-    #driver-class-name: com.mysql.cj.jdbc.Driver
-    driver-class-name: org.h2.Driver
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    #driver-class-name: org.h2.Driver
 
 
   # Hibernate/JPA settings

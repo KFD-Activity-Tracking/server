@@ -333,6 +333,8 @@
     </div>
 </div>
 
+
+
 <script>
     const API_BASE = '';
 
@@ -440,7 +442,7 @@
                     let type = 'Unknown';
                     let details = '';
 
-                    // Check action type based on properties
+                    // Check action type based on properties (for display only)
                     if (action.delta_x !== undefined) {
                         type = 'Mouse';
                         details = `ΔX: ${action.delta_x}, ΔY: ${action.delta_y}`;
@@ -531,7 +533,7 @@
         await addActions(3);
     });
 
-    // Helper function to add actions
+    // Helper function to add actions with proper type information
     async function addActions(count) {
         const userId = document.getElementById('actionUserId').value;
         const actionType = document.getElementById('actionType').value;
@@ -550,15 +552,22 @@
                 performed_at: now
             };
 
+            // Add type discriminator based on action type
             switch(actionType) {
                 case 'MOUSE':
+                    // For MouseAction, Jackson expects "type": "mouse" (from @JsonSubTypes annotation)
+                    action.type = 'mouse';
                     action.delta_x = parseInt(document.getElementById('deltaX').value) || (i + 1) * 10;
                     action.delta_y = parseInt(document.getElementById('deltaY').value) || (i + 1) * 10;
                     break;
                 case 'KEYBOARD':
+                    // For KeyboardAction, Jackson expects "type": "keyboard"
+                    action.type = 'keyboard';
                     action.keyboard_key = parseInt(document.getElementById('keyCode').value) || 65 + i;
                     break;
                 case 'APP':
+                    // For AppAction, Jackson expects "type": "app"
+                    action.type = 'app';
                     action.app_name = document.getElementById('appName').value || `Test App ${i + 1}`;
                     break;
             }
@@ -567,7 +576,7 @@
         }
 
         try {
-            console.log('Sending actions:', JSON.stringify(actions));
+            console.log('Sending actions with type information:', JSON.stringify(actions, null, 2));
 
             const response = await fetch('/api/actions/addAll', {
                 method: 'POST',
@@ -602,5 +611,9 @@
         }
     }
 </script>
+
+
+
+
 </body>
 </html>
