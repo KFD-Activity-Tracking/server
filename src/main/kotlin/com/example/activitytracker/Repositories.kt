@@ -27,7 +27,7 @@ interface ActionRepository : LongKeyRepository<Action> {
 
 
 @Repository
-interface UserRepository : LongKeyRepository<User>
+interface UserRepository : LongKeyRepository<Users>
 
 
 

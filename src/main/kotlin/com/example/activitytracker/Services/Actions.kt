@@ -1,10 +1,5 @@
-package com.example.activitytracker.Services
+package com.example.activitytracker
 
-import com.example.activitytracker.Action
-import com.example.activitytracker.ActionRepository
-import com.example.activitytracker.AppAction
-import com.example.activitytracker.KeyboardAction
-import com.example.activitytracker.MouseAction
 import org.springframework.stereotype.Service
 import kotlin.collections.addAll
 import kotlin.collections.iterator

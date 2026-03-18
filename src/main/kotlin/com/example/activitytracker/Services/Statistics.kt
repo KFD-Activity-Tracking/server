@@ -1,8 +1,4 @@
-package com.example.activitytracker.Services
-
-
-import com.example.activitytracker.Statistics
-import com.example.activitytracker.StatisticsRepository
+package com.example.activitytracker
 
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
