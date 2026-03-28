@@ -1,0 +1,118 @@
+
+
+
+
+
+
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: tracker_mysql
+    environment:
+      MYSQL_DATABASE : activity_tracker
+      MYSQL_USER: user
+      MYSQL_PASSWORD: vq09t9h5c90cgh8ovy
+      MYSQL_ROOT_PASSWORD: rootpassword
+
+    volumes:
+      - mysql_volume:/var/lib/mysql
+
+
+    ports:
+      - "3306:3306"
+
+    networks:
+      - tracker_network
+
+  server:
+    container_name: tracker_server
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/activity_tracker
+      DB_USER: user
+      DB_PASSWORD: vq09t9h5c90cgh8ovy
+
+    build:
+      context: ../../../../
+      dockerfile: src/main/resources/docker/Dockerfile
+
+    depends_on:
+      mysql:
+        condition: service_started
+
+    ports:
+      - "8765:8765"
+
+    networks:
+      - tracker_network
+
+
+
+
+
+volumes:
+  mysql_volume:
+
+
+networks:
+  tracker_network:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
