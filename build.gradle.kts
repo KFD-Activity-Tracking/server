@@ -38,11 +38,19 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 
+
+    implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.security:spring-security-crypto")
+
+
+    implementation("org.junit.jupiter:junit-jupiter:5.9.2")
+
     implementation("com.h2database:h2")
 
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    implementation(kotlin("test"))
 }
 
 kotlin {
