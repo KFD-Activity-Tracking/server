@@ -12,6 +12,22 @@ plugins {
     kotlin("plugin.jpa") version plugin_version
 }
 
+
+noArg {
+    annotation("jakarta.persistence.Entity")
+    annotation("jakarta.persistence.Embeddable")
+    annotation("jakarta.persistence.MappedSuperclass")
+    // Add this to generate no-arg constructors for data classes
+    invokeInitializers = true
+}
+
+allOpen {
+    annotation("jakarta.persistence.Entity")
+    annotation("jakarta.persistence.Embeddable")
+    annotation("jakarta.persistence.MappedSuperclass")
+}
+
+
 group = "com.example"
 version = "0.0.1-SNAPSHOT"
 description = "Activity tracking app"
@@ -39,17 +55,24 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 
 
+    //auth
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.security:spring-security-crypto")
+
+
+    // JWT
+    implementation("io.jsonwebtoken:jjwt-api:0.11.5")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")
 
 
     implementation("org.junit.jupiter:junit-jupiter:5.9.2")
 
     implementation("com.h2database:h2")
 
+
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.2")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
-	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     implementation(kotlin("test"))
 }
 

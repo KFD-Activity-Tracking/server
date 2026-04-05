@@ -3,16 +3,16 @@ package com.example.activitytracker.Debug
 
 import com.example.activitytracker.Debug.BlacklistConcat.blacklist
 import org.junit.jupiter.api.Test
+import org.springframework.stereotype.Service
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.extension
 import kotlin.io.path.name
-import kotlin.time.Duration.Companion.days
 
 
 object BlacklistConcat{
-    val blacklist = "server\\build, ".parsef
+    val blacklist = "build\\, ".parsef
 }
 fun allFiles() : List<Path>{
 
@@ -46,7 +46,15 @@ fun Path.readf() = "*".repeat(70) + "\nFile " + this.toString() + ":\n" + "*".re
 
 
 
-class ConcatTest {
+
+
+@Service
+class ConcatTest (
+) {
+
+
+
+
     @Test
     fun ExternalO(){
         //getActions()
@@ -56,6 +64,42 @@ class ConcatTest {
         getEntities()
         printAll("Users.kt")
     }
+
+    @Test
+    fun GetTree(){
+    }
+
+    @Test
+    fun getAllFiles(){
+        println(allFiles().map { it.toString() }.joinToString("\n"))
+    }
+
+    @Test
+    fun ExternalUsers(){
+        getProperties()
+        getEntities()
+        printAll("Users.kt")
+        printAll("UsersService.kt")
+        printAll("AuthentificateService.kt")
+        printAll("IdCreatedAtBaseTable")
+    }
+
+    @Test
+    fun FrontendTests(){
+
+        getProperties()
+        getEntities()
+
+        getControllers()
+        printAll("AuthentificateService.kt.kt")
+
+        printAll("Users.kt")
+
+        getActions()
+
+    }
+
+
 
     fun getActions(){
         printAll("Action")
@@ -78,9 +122,26 @@ class ConcatTest {
     }
 
 
+    fun removeDuplicates(str: String, chr: String) : String{
+        val res = mutableListOf<Char>()
+
+        res.add(chr[0])
+        for (i in 1..<str.length){
+            if (str[i] == str[i-1] && str[i] in chr){
+                continue
+            }
+            res.add(str[i])
+        }
+
+        return res.joinToString("")
+    }
 
     fun printAll(wc: String){
-        wc.parsef.forEach { println(getFiles(it).joinToString("\n")) }
+        wc.parsef.forEach {
+            println(getFiles(it).joinToString("\n") {
+            file -> removeDuplicates(file.replace("\r\n", "\n"), "\n")
+        })
+        }
     }
 
 }

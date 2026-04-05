@@ -3,21 +3,55 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 FROM gradle:8.5-jdk17 AS gradle_J17
 
 WORKDIR /startup
 
 COPY build.gradle.kts ./
 COPY settings.gradle.kts ./
-COPY src/ ./src
 COPY gradle/ ./gradle
 
 
 RUN gradle dependencies --no-daemon
-RUN gradle clean build --no-daemon
 
+#^^^ To not invalidate caches dependencies are run before copy
+COPY src/ ./src
 
-
+RUN gradle clean build -x test --no-daemon
 
 
 FROM eclipse-temurin:17-jdk-alpine

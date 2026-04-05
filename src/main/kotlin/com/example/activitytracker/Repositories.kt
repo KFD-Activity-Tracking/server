@@ -27,7 +27,9 @@ interface ActionRepository : LongKeyRepository<Action> {
 
 
 @Repository
-interface UserRepository : LongKeyRepository<Users>
+interface UserRepository : LongKeyRepository<Users> {
+    fun findByName(name: String): Users?
+}
 
 
 

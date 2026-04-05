@@ -35,6 +35,9 @@ spring:
 what-to-answer-to-hw:
   answer: hello world (injected)
 
+jwt-super-secret-key:
+  key: 1ajo9yv7v83u41ajog485mnf75jh42389h6dnf75jh43fu9n38sdu8j1j9ymf93sd834j9ymf9oa8sdu8joa3fu9ng485md238991982j2sd834991982j219h69yv7v83u4
+
 
 server:
   port: 8765

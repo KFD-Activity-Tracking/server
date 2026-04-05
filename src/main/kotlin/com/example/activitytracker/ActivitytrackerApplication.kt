@@ -1,24 +1,18 @@
 package com.example.activitytracker
 
-import com.sun.jdi.ClassType
-import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.CommandLineRunner
 import org.springframework.boot.autoconfigure.SpringBootApplication
-import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.runApplication
 import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Component
-import org.springframework.stereotype.Controller
+import org.springframework.web.ErrorResponse
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.ResponseBody
 import org.springframework.web.bind.annotation.ResponseStatus
-import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler
 import java.time.LocalDateTime
-import kotlin.reflect.KClass
 
 @SpringBootApplication
 @ConfigurationPropertiesScan
@@ -29,7 +23,31 @@ fun main(args: Array<String>) {
 }
 
 
-open class SuperWebError(
+
+@Component
+class StartupTasks (
+    val userController: UserController,
+    val userService: UserService,
+) : CommandLineRunner {
+    override fun run(vararg args: String?) {
+        try {
+            val defaultUser = userService.getUserByName("user")
+            if (defaultUser != null) {
+                userService.deleteUser(defaultUser)
+            }
+        } catch (e: Exception) {
+            println(e.message)
+        }
+        try {
+            userController.addUser(DtoAuthRequest("user", "user", "USER"))
+        } catch (e: Exception) {
+            println(e.message)
+        }
+    }
+
+}
+
+open class SuperWebException(
     val error: String,
     val type: Class<*>,
     val request: String,
@@ -52,21 +70,44 @@ open class SuperWebError(
 @ResponseStatus(HttpStatus.BAD_REQUEST)
 class HelloError(
     val reason: String
-) : SuperWebError(reason, HelloError::class.java, "SMth")
+) : SuperWebException(reason, HelloError::class.java, "SMth")
 
 
 @ResponseStatus(HttpStatus.NOT_FOUND)
-class NotFoundError(
+class NotFoundException(
     val reason: String
-) : SuperWebError(reason, NotFoundError::class.java,"")
+) : SuperWebException(reason, NotFoundException::class.java,"")
 
+
+@ResponseStatus(HttpStatus.CONFLICT)
+class AlreadyExistsException(
+    val reason: String
+) : SuperWebException(reason, AlreadyExistsException::class.java, "")
+
+
+@ResponseStatus(HttpStatus.LOCKED)
+class BadCredentialsException(
+    val reason: String
+) : SuperWebException(reason, BadCredentialsException::class.java, "")
+
+@ResponseStatus(HttpStatus.UNAUTHORIZED)
+class UnauthorizedException(
+    val reason: String
+) : SuperWebException(reason, UnauthorizedException::class.java, "")
 
 
 @ControllerAdvice
 class GlobalException : ResponseEntityExceptionHandler() {
-    @ExceptionHandler(SuperWebError::class)
-    fun handleError(e: SuperWebError): String {
-        return e.toString()
+    @ExceptionHandler(SuperWebException::class)
+    fun handleError(e: SuperWebException): ResponseEntity<Map<String, String>> {
+
+        val annotation = e::class.java.getAnnotation(ResponseStatus::class.java)
+        val httpStatus = annotation.value
+
+        return ResponseEntity
+            .status(httpStatus)
+            .body(e.status,)
+
     }
 }
 

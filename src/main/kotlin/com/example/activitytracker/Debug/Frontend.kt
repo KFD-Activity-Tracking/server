@@ -1,5 +1,8 @@
 package com.example.activitytracker.Debug
 
+import com.example.activitytracker.DtoAuthRequest
+import com.example.activitytracker.UserController
+import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.stereotype.Controller
@@ -33,13 +36,27 @@ class HelloW {
 }
 
 
+
 @Controller
 @RequestMapping("/frontend")
-class HttpFrontend{
+class HttpFrontend(
+){
+
+
+
+    @GetMapping("/mainpagev1")
+    fun frontendTestsv1(): String {
+        return "mainpagev1"
+    }
+
+
 
     init {
         println("http://localhost:8765/frontend/deepseektest")
         println("http://localhost:8765/frontend/paths")
+        println("http://localhost:8765/frontend/mainpagev1")
+
+
     }
 
     @GetMapping("/deepseektest")
@@ -60,6 +77,17 @@ class HttpFrontend{
 
 
         return str
+    }
+
+
+    @Test
+    fun printPaths(){
+
+        val pth = Paths.get("")
+        val result = mutableListOf<String>()
+        dfsDirectory(result, pth, 0)
+
+        println(result.joinToString("\n"))
     }
 
     fun dfsDirectory(res : MutableList<String>, pth: Path, depth: Int){

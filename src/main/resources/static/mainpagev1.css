@@ -1,0 +1,416 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    overflow: hidden;
+}
+
+/* Auth Section Styles */
+.auth-section {
+    padding: 40px;
+    background: white;
+}
+
+.auth-tabs {
+    display: flex;
+    border-bottom: 2px solid #e0e0e0;
+    margin-bottom: 30px;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 15px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.3s;
+    color: #666;
+}
+
+.tab-btn.active {
+    color: #667eea;
+    border-bottom: 2px solid #667eea;
+    margin-bottom: -2px;
+}
+
+.auth-form {
+    display: none;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.auth-form.active {
+    display: block;
+}
+
+.auth-form h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.auth-form input,
+.auth-form select {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.auth-form button {
+    width: 100%;
+    padding: 12px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.auth-form button:hover {
+    background: #5a67d8;
+}
+
+.error-message {
+    color: #e53e3e;
+    font-size: 14px;
+    margin-top: 10px;
+    text-align: center;
+}
+
+/* Main App Section Styles */
+#appSection {
+    padding: 30px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.header h1 {
+    color: #667eea;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+#currentUser {
+    font-weight: bold;
+    color: #333;
+}
+
+.logout-btn {
+    padding: 8px 16px;
+    background: #e53e3e;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.logout-btn:hover {
+    background: #c53030;
+}
+
+/* User Selector */
+.user-selector {
+    background: #f7fafc;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+}
+
+.user-selector h3 {
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.selector-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.selector-controls select {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.selector-controls button {
+    padding: 10px 20px;
+    background: #48bb78;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.selector-controls button:hover {
+    background: #38a169;
+}
+
+/* Add Action Section */
+.add-action-section {
+    background: #f7fafc;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+}
+
+.add-action-section h3 {
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.action-type-selector {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.action-type-btn {
+    flex: 1;
+    padding: 10px;
+    background: #e2e8f0;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.action-type-btn.active {
+    background: #667eea;
+    color: white;
+}
+
+.action-form {
+    display: none;
+    margin-bottom: 20px;
+}
+
+.action-form.active {
+    display: block;
+}
+
+.action-form h4 {
+    margin-bottom: 15px;
+    color: #555;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #555;
+    font-weight: 500;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.real-time-controls {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+}
+
+.real-time-controls h4 {
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: #888;
+}
+
+.tracking-btn {
+    padding: 8px 16px;
+    margin-right: 10px;
+    background: #4299e1;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.tracking-btn:hover:not(:disabled) {
+    background: #3182ce;
+}
+
+.tracking-btn:disabled {
+    background: #cbd5e0;
+    cursor: not-allowed;
+}
+
+.coordinates {
+    margin-top: 10px;
+    padding: 10px;
+    background: white;
+    border-radius: 5px;
+    font-family: monospace;
+    font-size: 14px;
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 12px;
+    background: #4299e1;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.submit-btn:hover {
+    background: #3182ce;
+}
+
+.action-message {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    text-align: center;
+}
+
+.action-message.success {
+    background: #c6f6d5;
+    color: #22543d;
+}
+
+.action-message.error {
+    background: #fed7d7;
+    color: #742a2a;
+}
+
+/* Actions List Section */
+.actions-list-section {
+    background: #f7fafc;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.actions-list-section h3 {
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.actions-filter {
+    margin-bottom: 15px;
+}
+
+.actions-filter label {
+    margin-right: 10px;
+    color: #555;
+}
+
+.actions-filter select {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.actions-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.action-card {
+    background: white;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    border-left: 4px solid #667eea;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.action-card.mouse {
+    border-left-color: #48bb78;
+}
+
+.action-card.keyboard {
+    border-left-color: #ed8936;
+}
+
+.action-card.app {
+    border-left-color: #4299e1;
+}
+
+.action-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: #666;
+}
+
+.action-type-badge {
+    padding: 2px 8px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    font-weight: bold;
+}
+
+.action-details {
+    font-size: 14px;
+    color: #333;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        margin: 10px;
+    }
+
+    #appSection {
+        padding: 20px;
+    }
+
+    .selector-controls {
+        flex-direction: column;
+    }
+
+    .action-type-selector {
+        flex-direction: column;
+    }
+}
