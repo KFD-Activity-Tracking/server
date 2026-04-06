@@ -100,6 +100,15 @@
                     <button id="startKeyboardTracking" class="tracking-btn">Start Tracking</button>
                     <button id="stopKeyboardTracking" class="tracking-btn" disabled>Stop Tracking</button>
                     <div id="lastKeyPressed" class="coordinates">Last key: None</div>
+
+                    <!-- Bulk Mode Controls - Added here -->
+                    <div class="bulk-mode-controls">
+                        <label>
+                            <input type="checkbox" id="bulkModeCheckbox">
+                            Send keyboard actions in bulk (every 5 seconds)
+                        </label>
+                        <button id="flushActionsBtn" class="flush-btn">Send Now</button>
+                    </div>
                 </div>
             </div>
 

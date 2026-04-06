@@ -31,7 +31,10 @@ interface ActionRepository : LongKeyRepository<Action> {
 
 @Repository
 interface UserRepository : LongKeyRepository<Users> {
-    fun findByName(name: String): Users?
+    fun findByUsername(name: String): Users?
+
+    fun save(user: DtoSimpleUserMap) : Users
+
 }
 
 

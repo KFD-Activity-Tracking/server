@@ -1,6 +1,5 @@
 package com.example.activitytracker
 
-import org.springframework.security.core.userdetails.User
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.stereotype.Component
@@ -10,11 +9,11 @@ import kotlin.jvm.optionals.getOrElse
 
 interface UserService {
     fun getUserById(id: Long): Users?
-    fun getAllUsers(): List<Users>
+    fun getAllUsers(): List<DtoSimpleUserMap>
     fun getUserByName(name: String): Users?
     fun createUser(user: DtoCreateUserRequest): Users
-    fun deleteUser(user: Users)
-    fun updateUser(user: DtoUpdateUserRequest): Users
+    fun deleteUser(user: Long)
+    fun updateUser(user: DtoSimpleUserMap): Users
 
 
 }
@@ -28,37 +27,43 @@ class UserServiceImpl (
 
     override fun getUserById(id: Long): Users? = userDao.findById(id).getOrElse { throw NotFoundException("no user with id $id") }
 
-    override fun getAllUsers(): List<Users> = userDao.findAll().map { it ?: throw NotFoundException("findAllUsers failed in user service") }
+    override fun getAllUsers(): List<DtoSimpleUserMap> = userDao.findAll().map { it.toDtoSimpleUserMap() }
 
 
-    override fun getUserByName(name: String): Users? = userDao.findByName(name) ?: throw NotFoundException("getUserByName failed in user service")
+    override fun getUserByName(name: String): Users? = userDao.findByUsername(name) ?:
+        throw NotFoundException("getUserByName failed in user service (reques = ${name})")
 
 
 
     override fun createUser(user: DtoCreateUserRequest): Users =
         userDao.save(
             Users(
-                user.username,
-                getRole(user.role),
-                user.hashPassword,))
+                username =  user.username,
+                role = getRole(user.role),
+                passwordHash = user.hashPassword,))
 
 
     fun getRole(role: String) : String = role.apply{
         if( role !in listOf("USER", "ADMIN", "MANAGER")  ) {
-            throw HelloError("invalid role: $role")
+            throw HelloException("invalid role: $role")
         }
     }
 
 
     //just id is enough
-    override fun deleteUser(user: Users) = userDao.deleteById(user.id)
+    override fun deleteUser(user: Long) = userDao.deleteById(user)
 
-    override fun updateUser(user: DtoUpdateUserRequest): Users = userDao.save(Users(
-        user.id,
-        user.username,
-        user.role,
-        user.hashPassword,
-    ))
+    override fun updateUser(user: DtoSimpleUserMap): Users {
+        val user_old = userDao.findById(user.id).getOrElse { throw NotFoundException("user with id ${user.id} not found") }
+        if (user_old.username!=user.username) {
+            val user_same = userDao.findByUsername(user.username)
+            if (user_same != null) {
+                throw AlreadyExistsException("user with name ${user.username} already exists")
+            }
+        }
+
+        return userDao.save(user) ?: throw HelloException("Unexpected error in userService update")
+    }
 
 }
 
@@ -77,7 +82,7 @@ class UserDetailsServiceImpl (
 
         val builder = org.springframework.security.core.userdetails.User.builder()
         val res = builder
-            .username(user.name)
+            .username(user.username)
             .password(user.passwordHash)
             .roles(user.role)
             .build()

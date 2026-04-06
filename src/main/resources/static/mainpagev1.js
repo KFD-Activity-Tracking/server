@@ -6,6 +6,10 @@ let currentUsername = null;
 let currentUserRole = null;
 let mouseTrackingActive = false;
 let keyboardTrackingActive = false;
+let pendingKeyboardActions = []; // Store pending keyboard actions for bulk sending
+let bulkSendInterval = null;
+const BULK_SEND_DELAY = 5000; // Send every 5 seconds when in bulk mode
+let bulkModeEnabled = false;
 
 // DOM Elements
 const authSection = document.getElementById('authSection');
@@ -34,6 +38,16 @@ const startKeyboardTracking = document.getElementById('startKeyboardTracking');
 const stopKeyboardTracking = document.getElementById('stopKeyboardTracking');
 const lastKeyPressed = document.getElementById('lastKeyPressed');
 
+// Bulk mode controls
+let bulkModeControls = `
+    <div class="bulk-mode-controls" style="margin-top: 10px;">
+        <label>
+            <input type="checkbox" id="bulkModeCheckbox"> Send keyboard actions in bulk (every 5 seconds)
+        </label>
+        <button id="flushActionsBtn" style="margin-left: 10px; padding: 5px 10px; background: #ed8936;">Send Now</button>
+    </div>
+`;
+
 // Auth tab switching
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -53,8 +67,65 @@ actionTypeBtns.forEach(btn => {
         btn.classList.add('active');
         document.querySelectorAll('.action-form').forEach(form => form.classList.remove('active'));
         document.getElementById(`${type}Form`).classList.add('active');
+
+        // Add bulk mode controls to keyboard form if not already added
+        if (type === 'keyboard' && !document.querySelector('.bulk-mode-controls')) {
+            const keyboardFormContainer = document.getElementById('keyboardForm');
+            const existingControls = keyboardFormContainer.querySelector('.bulk-mode-controls');
+            if (!existingControls) {
+                keyboardFormContainer.insertAdjacentHTML('beforeend', bulkModeControls);
+                setupBulkModeListeners();
+            }
+        }
     });
 });
+
+function setupBulkModeListeners() {
+    const bulkModeCheckbox = document.getElementById('bulkModeCheckbox');
+    const flushActionsBtn = document.getElementById('flushActionsBtn');
+
+    if (bulkModeCheckbox) {
+        bulkModeCheckbox.addEventListener('change', (e) => {
+            bulkModeEnabled = e.target.checked;
+            if (bulkModeEnabled) {
+                startBulkSending();
+            } else {
+                stopBulkSending();
+                // Send any pending actions immediately when disabling bulk mode
+                if (pendingKeyboardActions.length > 0) {
+                    sendKeyboardActionsInBulk();
+                }
+            }
+        });
+    }
+
+    if (flushActionsBtn) {
+        flushActionsBtn.addEventListener('click', () => {
+            if (pendingKeyboardActions.length > 0) {
+                sendKeyboardActionsInBulk();
+                showActionMessage(`Sent ${pendingKeyboardActions.length} pending keyboard actions`, true);
+            } else {
+                showActionMessage('No pending actions to send', false);
+            }
+        });
+    }
+}
+
+function startBulkSending() {
+    if (bulkSendInterval) clearInterval(bulkSendInterval);
+    bulkSendInterval = setInterval(() => {
+        if (pendingKeyboardActions.length > 0) {
+            sendKeyboardActionsInBulk();
+        }
+    }, BULK_SEND_DELAY);
+}
+
+function stopBulkSending() {
+    if (bulkSendInterval) {
+        clearInterval(bulkSendInterval);
+        bulkSendInterval = null;
+    }
+}
 
 // Helper Functions
 function showError(elementId, message) {
@@ -108,7 +179,8 @@ async function authenticatedRequest(url, options = {}) {
 
     return response;
 }
-// Login function - FIXED VERSION
+
+// Login function
 async function login(username, password) {
     try {
         const response = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -125,7 +197,7 @@ async function login(username, password) {
         }
 
         const data = await response.json();
-        console.log('Login response:', data); // Debug log
+        console.log('Login response:', data);
 
         if (data.token) {
             storeToken(data.token);
@@ -140,7 +212,8 @@ async function login(username, password) {
         return false;
     }
 }
-// Register function - FIXED VERSION
+
+// Register function
 async function register(username, password, role) {
     try {
         const response = await fetch(`${API_BASE_URL}/auth/register`, {
@@ -157,7 +230,7 @@ async function register(username, password, role) {
         }
 
         const data = await response.json();
-        console.log('Register response:', data); // Debug log
+        console.log('Register response:', data);
 
         if (data.token) {
             storeToken(data.token);
@@ -173,29 +246,25 @@ async function register(username, password, role) {
     }
 }
 
-// Load current user info - FIXED VERSION
+// Load current user info
 async function loadUserInfo() {
     try {
         const response = await authenticatedRequest('/api/users/owninfo');
 
-        // Check if response is OK
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const userInfo = await response.json();
-        console.log('User info received:', userInfo); // Debug log
+        console.log('User info received:', userInfo);
 
-        // Make sure we're using the correct field names from DtoUserInfoResponse
-        currentUserId = userInfo.userId;  // Note: camelCase from DTO
+        currentUserId = userInfo.userId;
         currentUsername = userInfo.username;
         currentUserRole = userInfo.role;
         currentUserSpan.textContent = `${currentUsername} (${currentUserRole})`;
 
-        // Load all users for the dropdown
         await loadAllUsers();
 
-        // Switch to app view
         authSection.style.display = 'none';
         appSection.style.display = 'block';
     } catch (error) {
@@ -204,8 +273,6 @@ async function loadUserInfo() {
         logout();
     }
 }
-
-
 
 // Load all users for dropdown
 async function loadAllUsers() {
@@ -217,11 +284,10 @@ async function loadAllUsers() {
         users.forEach(user => {
             const option = document.createElement('option');
             option.value = user.id;
-            option.textContent = `${user.name} (${user.role})`;
+            option.textContent = `${user.username} (${user.role})`;
             viewUserSelect.appendChild(option);
         });
 
-        // Auto-select current user
         viewUserSelect.value = currentUserId;
         await loadUserActions(currentUserId);
     } catch (error) {
@@ -279,7 +345,7 @@ function displayActions(actions) {
                 break;
         }
 
-        const date = new Date(action.performed_at);
+        const date = new Date(action.performedAt);
         const formattedDate = date.toLocaleString();
 
         return `
@@ -299,30 +365,131 @@ function displayActions(actions) {
     }).join('');
 }
 
+// Create a complete action object with all required fields
+function createActionObject(type, specificFields = {}) {
+    // Get current timestamp in ISO format
+    const now = new Date();
+    const performedAt = now.toISOString();
+
+    // Base action object with all required fields
+    const action = {
+        type: type,
+        performedAt: performedAt,
+        // Note: user field will be set by the backend based on the JWT token
+        // We don't need to send it from the frontend
+        ...specificFields
+    };
+
+    // Add type-specific fields
+    switch (type) {
+        case 'mouse':
+            action.delta_x = specificFields.delta_x || 0;
+            action.delta_y = specificFields.delta_y || 0;
+            break;
+        case 'keyboard':
+            action.keyboard_key = specificFields.keyboard_key || 0;
+            break;
+        case 'app':
+            action.app_name = specificFields.app_name || '';
+            break;
+    }
+
+    console.log('Created action object:', action);
+    return action;
+}
+
+// Submit a single keyboard action (immediate mode)
+async function submitKeyboardActionImmediate(keyCode) {
+    const action = createActionObject('keyboard', {
+        keyboard_key: keyCode
+    });
+
+    return await sendActions([action]);
+}
+
+// Add keyboard action to pending bulk list
+function addKeyboardActionToBulk(keyCode) {
+    const action = createActionObject('keyboard', {
+        keyboard_key: keyCode
+    });
+    pendingKeyboardActions.push(action);
+    console.log(`Added keyboard action to bulk. Total pending: ${pendingKeyboardActions.length}`);
+    showActionMessage(`Key recorded (${pendingKeyboardActions.length} pending)`, true);
+}
+
+// Send keyboard actions in bulk
+async function sendKeyboardActionsInBulk() {
+    if (pendingKeyboardActions.length === 0) return;
+
+    const actionsToSend = [...pendingKeyboardActions];
+    pendingKeyboardActions = []; // Clear immediately to avoid duplicates
+
+    try {
+        await sendActions(actionsToSend);
+        console.log(`Sent ${actionsToSend.length} keyboard actions in bulk`);
+        showActionMessage(`Sent ${actionsToSend.length} keyboard actions`, true);
+    } catch (error) {
+        console.error('Failed to send bulk actions:', error);
+        // Re-add failed actions to pending queue
+        pendingKeyboardActions.unshift(...actionsToSend);
+        showActionMessage('Failed to send bulk actions', false);
+    }
+}
+
+// Send actions to backend
+async function sendActions(actions) {
+    console.log('Sending actions to backend:', JSON.stringify(actions, null, 2));
+
+    const response = await authenticatedRequest('/api/actions/addAll', {
+        method: 'POST',
+        body: JSON.stringify(actions)
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to send actions: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    console.log('Actions saved successfully:', result);
+    return result;
+}
+
 // Submit a new action
 async function submitAction() {
     const activeType = document.querySelector('.action-type-btn.active').dataset.type;
-    let actionData = {
-        type: activeType,
-        user_id: currentUserId,
-        performed_at: new Date().toISOString()
-    };
+
+    if (activeType === 'keyboard') {
+        const keyCode = parseInt(document.getElementById('keyCode').value) || 0;
+        if (!keyCode) {
+            showActionMessage('Please enter a key code or use real-time tracking', false);
+            return;
+        }
+
+        if (bulkModeEnabled) {
+            addKeyboardActionToBulk(keyCode);
+            document.getElementById('keyCode').value = ''; // Clear for next input
+        } else {
+            await submitKeyboardActionImmediate(keyCode);
+            showActionMessage('Keyboard action added successfully!', true);
+            document.getElementById('keyCode').value = '';
+        }
+
+        // Reload actions
+        await loadUserActions(viewUserSelect.value);
+        return;
+    }
+
+    // Handle mouse and app actions
+    let specificFields = {};
 
     switch (activeType) {
         case 'mouse':
             const deltaX = parseInt(document.getElementById('mouseDeltaX').value) || 0;
             const deltaY = parseInt(document.getElementById('mouseDeltaY').value) || 0;
-            actionData = {
-                ...actionData,
+            specificFields = {
                 delta_x: deltaX,
                 delta_y: deltaY
-            };
-            break;
-        case 'keyboard':
-            const keyCode = parseInt(document.getElementById('keyCode').value) || 0;
-            actionData = {
-                ...actionData,
-                keyboard_key: keyCode
             };
             break;
         case 'app':
@@ -331,39 +498,33 @@ async function submitAction() {
                 showActionMessage('Please enter an app name', false);
                 return;
             }
-            actionData = {
-                ...actionData,
+            specificFields = {
                 app_name: appName
             };
             break;
     }
 
-    try {
-        const response = await authenticatedRequest('/api/actions/addAll', {
-            method: 'POST',
-            body: JSON.stringify([actionData])
-        });
+    const action = createActionObject(activeType, specificFields);
 
-        if (response.ok) {
-            showActionMessage('Action added successfully!', true);
-            // Clear form
-            document.getElementById('mouseDeltaX').value = '';
-            document.getElementById('mouseDeltaY').value = '';
-            document.getElementById('keyCode').value = '';
-            document.getElementById('appName').value = '';
-            // Reload current user's actions
-            await loadUserActions(viewUserSelect.value);
-        } else {
-            throw new Error('Failed to add action');
-        }
+    try {
+        await sendActions([action]);
+        showActionMessage('Action added successfully!', true);
+
+        // Clear forms
+        document.getElementById('mouseDeltaX').value = '';
+        document.getElementById('mouseDeltaY').value = '';
+        document.getElementById('appName').value = '';
+
+        // Reload actions
+        await loadUserActions(viewUserSelect.value);
     } catch (error) {
         console.error('Failed to add action:', error);
-        showActionMessage('Failed to add action', false);
+        showActionMessage('Failed to add action: ' + error.message, false);
     }
 }
 
 // Mouse tracking
-function startMouseTrackingHandler(e) {
+function startMouseTrackingHandler() {
     if (mouseTrackingActive) return;
     mouseTrackingActive = true;
     startMouseTracking.disabled = true;
@@ -382,9 +543,6 @@ function stopMouseTrackingHandler() {
 
 function trackMouseMove(e) {
     mouseCoordinates.textContent = `X: ${e.clientX}, Y: ${e.clientY}`;
-
-    // Optional: Auto-add mouse movement as actions
-    // This could be implemented to add actions periodically
 }
 
 // Keyboard tracking
@@ -405,11 +563,33 @@ function stopKeyboardTrackingHandler() {
     lastKeyPressed.textContent = 'Last key: None';
 }
 
-function trackKeyPress(e) {
-    lastKeyPressed.textContent = `Last key: ${e.key} (Code: ${e.keyCode})`;
+async function trackKeyPress(e) {
+    // Prevent tracking of modifier keys only
+    if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Meta') {
+        return;
+    }
+
+    // Prevent default to avoid triggering browser shortcuts while tracking
+    // Comment this out if you want to keep browser shortcuts
+    // e.preventDefault();
+
+    const keyCode = e.keyCode || e.which;
+    const key = e.key;
+
+    lastKeyPressed.textContent = `Last key: ${key} (Code: ${keyCode})`;
 
     // Auto-fill key code field
-    document.getElementById('keyCode').value = e.keyCode;
+    document.getElementById('keyCode').value = keyCode;
+
+    // Send or queue the keyboard action based on mode
+    if (bulkModeEnabled) {
+        addKeyboardActionToBulk(keyCode);
+    } else {
+        await submitKeyboardActionImmediate(keyCode);
+        showActionMessage(`Key "${key}" recorded!`, true);
+        // Reload actions to show the new one
+        await loadUserActions(viewUserSelect.value);
+    }
 }
 
 // Logout function
@@ -418,6 +598,11 @@ function logout() {
     authToken = null;
     currentUserId = null;
     currentUsername = null;
+
+    // Stop bulk sending
+    stopBulkSending();
+    pendingKeyboardActions = [];
+
     authSection.style.display = 'block';
     appSection.style.display = 'none';
 
@@ -487,7 +672,6 @@ window.addEventListener('load', () => {
     if (token) {
         authToken = token;
         loadUserInfo().catch(() => {
-            // If token is invalid, clear it
             localStorage.removeItem('jwt_token');
         });
     }
@@ -500,4 +684,12 @@ document.getElementById('loginPassword').addEventListener('keypress', (e) => {
 
 document.getElementById('regPassword').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') registerBtn.click();
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    if (bulkModeEnabled && pendingKeyboardActions.length > 0) {
+        // Try to send pending actions before closing
+        sendKeyboardActionsInBulk();
+    }
 });

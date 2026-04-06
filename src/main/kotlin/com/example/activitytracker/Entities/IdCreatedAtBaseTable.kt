@@ -8,13 +8,15 @@ import jakarta.persistence.MappedSuperclass
 import java.time.LocalDateTime
 
 @MappedSuperclass
-open class IdCreatedAtBaseTable{
+open class IdCreatedAtBaseTable(
     @Column(name="id")
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    var id : Long = 0
+    var id : Long = 0,
 
     @Column(name="created_at")
-    var createdAt : LocalDateTime = LocalDateTime.now()
+    var createdAt : LocalDateTime = LocalDateTime.now(),
+
+){
 
 }

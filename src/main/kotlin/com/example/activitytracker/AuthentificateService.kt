@@ -62,6 +62,8 @@ interface JwtService{
     fun extractUsername(token: String): String
 
     fun validateToken(token: String): Boolean
+
+    fun extractUserFromHeader(authHeader: String): Users
 }
 
 
@@ -75,7 +77,7 @@ class JwtMySuperSecretKey (
 @Service
 class JwtServiceImpl(
     val jwtKey: JwtMySuperSecretKey,
-
+    val userService: UserService,
 ) : JwtService {
 
 
@@ -123,6 +125,12 @@ class JwtServiceImpl(
         }
         // etc
         return true
+    }
+
+    override fun extractUserFromHeader(authHeader: String): Users {
+        val username = extractUsername(authHeader.substring(7))
+        val user = userService.getUserByName(username) ?: throw NotFoundException("User not found ${username}")
+        return user
     }
 
 }

@@ -9,7 +9,6 @@ import com.example.activitytracker.JwtService
 import com.example.activitytracker.NotFoundException
 import com.example.activitytracker.UserService
 import org.springframework.security.crypto.password.PasswordEncoder
-import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -56,7 +55,7 @@ class AuthControllerImpl (
             throw BadCredentialsException("Wrong credentials for user ${request.username}")
         }
 
-        val token = jwtService.generateJwt(user.name)
+        val token = jwtService.generateJwt(user.username)
 
         return DtoTokenResponse(token)
 
@@ -74,13 +73,15 @@ class AuthControllerImpl (
         } catch (e: NotFoundException) { }
 
 
+
+
         val user = userService.createUser(DtoCreateUserRequest(
             username = request.username,
             request.role,
             passwordEncoder.encode(request.password),
         ))
 
-        val token = jwtService.generateJwt(user.name)
+        val token = jwtService.generateJwt(user.username)
 
         return DtoTokenResponse(token)
 

@@ -8,7 +8,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.stereotype.Component
-import org.springframework.web.ErrorResponse
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseStatus
@@ -43,7 +42,7 @@ class StartupTasks (
         try {
             val defaultUser = userService.getUserByName("user")
             if (defaultUser != null) {
-                userService.deleteUser(defaultUser)
+                userService.deleteUser(defaultUser.id)
             }
         } catch (e: Exception) {
             println(e.message)
@@ -78,9 +77,9 @@ open class SuperWebException(
 
 
 @ResponseStatus(HttpStatus.BAD_REQUEST)
-class HelloError(
+class HelloException(
     val reason: String
-) : SuperWebException(reason, HelloError::class.java, "SMth")
+) : SuperWebException(reason, HelloException::class.java, "SMth")
 
 
 @ResponseStatus(HttpStatus.NOT_FOUND)
@@ -116,7 +115,7 @@ class GlobalException : ResponseEntityExceptionHandler() {
 
         return ResponseEntity
             .status(httpStatus)
-            .body(e.status,)
+            .body(e.status)
 
     }
 }

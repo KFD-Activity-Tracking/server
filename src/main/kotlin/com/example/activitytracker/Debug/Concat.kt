@@ -99,7 +99,7 @@ class ConcatTest (
         getEntities()
 
         getControllers()
-        printAll("AuthentificateService.kt.kt")
+        printAll("AuthentificateService.kt")
 
         printAll("Users.kt")
 

@@ -1,5 +1,6 @@
 package com.example.activitytracker
 
+import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.JoinTable
@@ -11,26 +12,19 @@ import jakarta.persistence.Table
 
 @Entity
 @Table(name = "users_")
-class Users (
-    var name: String,
-    var role: String,
-    var passwordHash: String,
-) : IdCreatedAtBaseTable() {
+class Users(
 
-    constructor(
-        id: Long,
-        name: String,
-        role: String,
-        passwordHash: String,
-    ) : this(name, role, passwordHash) {
-        this.id = id
-    }
+    id: Long = 0,
 
-    constructor(
-        id: Long,
-    ) : this("", "", "") {
-        this.id = id
-    }
+    @Column(name = "username")
+    var username: String = "",
+
+    @Column(name = "role")
+    var role: String = "",
+
+    @Column(name = "passwordHash")
+    var passwordHash: String = "",
+
 
     @ManyToMany
     @JoinTable(
@@ -38,7 +32,22 @@ class Users (
         joinColumns = [JoinColumn(name = "admin_id")],
         inverseJoinColumns = [JoinColumn(name = "subordinate_id")]
     )
-    var subordinates : MutableList<Users> = mutableListOf()
+    var subordinates: MutableList<Users> = mutableListOf(),
+
+): IdCreatedAtBaseTable(id) {
+
+
+
+
+    fun toDtoSimpleUserMap(): DtoSimpleUserMap {
+        return DtoSimpleUserMap(
+            this.id,
+            this.username,
+            this.role,
+            this.subordinates.map { it.id }
+        )
+    }
+
 }
 
 
@@ -55,12 +64,11 @@ data class DtoCreateUserRequest (
     val hashPassword : String,
 )
 
-data class DtoUpdateUserRequest (
+data class DtoSimpleUserMap (
     val id: Long,
     val username: String,
     val role: String,
-    val hashPassword: String,
-    val subordinates: List<Int>,
+    val subordinates: List<Long>,
 )
 
 data class DtoUserInfoResponse(

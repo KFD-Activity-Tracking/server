@@ -414,3 +414,113 @@ body {
         flex-direction: column;
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+/* Bulk Mode Controls */
+.bulk-mode-controls {
+    margin-top: 15px;
+    padding: 10px;
+    background: #edf2f7;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.bulk-mode-controls label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    color: #4a5568;
+}
+
+.bulk-mode-controls input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+    cursor: pointer;
+}
+
+.bulk-mode-controls button {
+    padding: 5px 12px;
+    background: #ed8936;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.3s;
+}
+
+.bulk-mode-controls button:hover {
+    background: #dd6b20;
+}
+
+/* Action Footer */
+.action-footer {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #e2e8f0;
+    font-size: 11px;
+    color: #a0aec0;
+}
+
+/* Enhanced tracking feedback */
+.tracking-active {
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.coordinates {
+    font-weight: bold;
+    color: #2d3748;
+}
+
+/* Pending actions indicator */
+.pending-indicator {
+    display: inline-block;
+    background: #ed8936;
+    color: white;
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 12px;
+    margin-left: 10px;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

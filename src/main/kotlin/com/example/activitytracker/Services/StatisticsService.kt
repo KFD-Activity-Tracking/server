@@ -5,6 +5,7 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
 import java.time.ZoneOffset
+import kotlin.math.sqrt
 import kotlin.time.Duration.Companion.minutes
 
 
@@ -35,7 +36,7 @@ class StatisticsServiceImpl (
 
 
         val statistic = Statistics()
-        statistic.user_id = Users(userId)
+        statistic.user_id = Users(id = userId)
 
         val sorted = actions.sortedBy { it.performedAt }
 
@@ -44,6 +45,9 @@ class StatisticsServiceImpl (
 
 
         val app_actions = actions.filter { it is AppAction }.map { it as AppAction }.groupBy { it.app_name }
+        val mouse_actions = actions.filter { it is MouseAction }.map { it as MouseAction }
+        val keyboard_actions = actions.filter { it is MouseAction }.map { it as KeyboardAction }
+
 
         app_actions.forEach { app_name, named ->
             val app_statistic = AppStatistics()
@@ -54,6 +58,9 @@ class StatisticsServiceImpl (
             app_statistic.time_spent = -1L.NOT_COMPLETED
             statistic.app_statistics.add(app_statistic)
         }
+
+        statistic.keyboard_clicks = keyboard_actions.size
+        statistic.mouse_movement = mouse_actions.fold(0.0) {acc, action -> acc+ sqrt((action.delta_x*action.delta_x+action.delta_y*action.delta_y).toDouble()) }.toLong()
 
 
         statistic.active_time = 0L.NOT_COMPLETED
@@ -79,7 +86,7 @@ class StatisticsServiceImpl (
     override fun collectAllStatistics() {
         println("debug Collecting statistics!! ").NOT_COMPLETED  //debug
 
-        val user_action = actionService.getAllActions().groupBy { it.userId }
+        val user_action = actionService.getAllActions().groupBy { it.user.id }
 
         user_action.forEach { user_id, actions ->
             collectStatsForUser(user_id)

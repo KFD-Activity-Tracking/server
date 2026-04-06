@@ -1,6 +1,5 @@
 package com.example.activitytracker
 
-import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -23,11 +22,10 @@ class UserController(
     // http://localhost:8765/api/users/owninfo
     @GetMapping("/owninfo")
     fun getCurrentUser(@RequestHeader("Authorization") authHeader: String) : DtoUserInfoResponse {
-        val token = authHeader.substring(7)
-        val user = userService.getUserByName(jwtService.extractUsername(token))!!
+        val user = jwtService.extractUserFromHeader(authHeader)
         val res = DtoUserInfoResponse(
             user.id,
-            user.name,
+            user.username,
             user.role,
         )
         return res
@@ -53,7 +51,7 @@ class UserController(
 
     @PostMapping("/delete/{userId}")
     fun deleteUser(@PathVariable userId: Long) {
-        userService.deleteUser(Users(userId))
+        userService.deleteUser(userId)
     }
 
     @GetMapping("/findId/{userId}")

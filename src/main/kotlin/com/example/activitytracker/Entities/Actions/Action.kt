@@ -9,6 +9,8 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Inheritance
 import jakarta.persistence.InheritanceType
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import java.time.LocalDateTime
 
@@ -34,7 +36,32 @@ open class Action() {
     @Column(name="performed_at")
     open var performedAt : LocalDateTime = LocalDateTime.now()
 
-    @Column(name="user_id")
-    open var userId : Long = 0
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    lateinit var user : Users
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
