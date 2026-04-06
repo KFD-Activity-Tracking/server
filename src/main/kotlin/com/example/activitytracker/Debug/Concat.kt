@@ -84,6 +84,14 @@ class ConcatTest (
         printAll("IdCreatedAtBaseTable")
     }
 
+
+    @Test
+    fun AuthenticateBasicTests(){
+        printAll("AuthController.kt")
+        printAll("AuthentificateService.kt")
+        printAll("Users.kt")
+    }
+
     @Test
     fun FrontendTests(){
 

@@ -32,9 +32,9 @@ open class Action() {
 
 
     @Column(name="performed_at")
-    open var performed_at : LocalDateTime = LocalDateTime.now()
+    open var performedAt : LocalDateTime = LocalDateTime.now()
 
     @Column(name="user_id")
-    open var user_id : Long = 0
+    open var userId : Long = 0
 
 }

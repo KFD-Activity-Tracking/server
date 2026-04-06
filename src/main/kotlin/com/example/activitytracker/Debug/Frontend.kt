@@ -50,11 +50,18 @@ class HttpFrontend(
     }
 
 
+    @GetMapping("/postman")
+    fun postmanNotReally(): String {
+        return "postmannopostman"
+    }
+
+
 
     init {
         println("http://localhost:8765/frontend/deepseektest")
         println("http://localhost:8765/frontend/paths")
         println("http://localhost:8765/frontend/mainpagev1")
+        println("http://localhost:8765/frontend/postman")
 
 
     }

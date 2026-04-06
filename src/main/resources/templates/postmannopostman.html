@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Tester · Activity Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f4f7fc;
+            font-family: system-ui, 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            padding: 2rem 1.5rem;
+            color: #1a2c3e;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* card style - light & airy */
+        .card {
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.03), 0 2px 6px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease;
+            border: 1px solid #e9edf2;
+        }
+
+        .two-columns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.8rem;
+        }
+
+        .col {
+            flex: 1;
+            min-width: 280px;
+        }
+
+        .panel {
+            padding: 1.6rem 1.8rem;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            margin-bottom: 1.4rem;
+            border-bottom: 2px solid #eef2f6;
+            padding-bottom: 0.7rem;
+        }
+
+        .panel-header h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #0f2b3d;
+            letter-spacing: -0.2px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .badge-soft {
+            background: #eef2fa;
+            color: #2c5f8a;
+            font-size: 0.7rem;
+            padding: 0.2rem 0.7rem;
+            border-radius: 40px;
+            font-weight: 500;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            color: #5c6f87;
+            margin-bottom: 0.3rem;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.7rem 0.9rem;
+            background: #ffffff;
+            border: 1px solid #cfdfed;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            color: #1a2c3e;
+            transition: 0.15s;
+            outline: none;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: #5f9bd5;
+            box-shadow: 0 0 0 3px rgba(79, 141, 201, 0.15);
+        }
+
+        textarea {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.8rem;
+            resize: vertical;
+        }
+
+        button {
+            background: #eef2fa;
+            border: none;
+            border-radius: 40px;
+            padding: 0.6rem 1.2rem;
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #1f4e79;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            justify-content: center;
+        }
+
+        button.primary {
+            background: #2c7da0;
+            color: white;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        button.primary:hover {
+            background: #1f6390;
+            transform: translateY(-1px);
+        }
+
+        button.secondary {
+            background: #eef2fa;
+            color: #2c5f7a;
+            border: 1px solid #d4e0ea;
+        }
+
+        button.secondary:hover {
+            background: #e2e9f2;
+        }
+
+        button.small-icon {
+            padding: 0.3rem 0.7rem;
+            font-size: 0.7rem;
+            background: #f0f4f9;
+        }
+
+        .flex-row {
+            display: flex;
+            gap: 0.8rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .token-area {
+            background: #f8fafd;
+            border-radius: 18px;
+            padding: 0.7rem;
+            font-family: monospace;
+            font-size: 0.7rem;
+            border: 1px solid #e2eaf1;
+            margin-top: 0.5rem;
+        }
+
+        .key-value-row {
+            display: flex;
+            gap: 0.6rem;
+            margin-bottom: 0.6rem;
+            align-items: center;
+        }
+
+        .key-value-row input:first-child {
+            width: 32%;
+        }
+        .key-value-row input:last-child {
+            width: 52%;
+        }
+        .remove-header-btn {
+            width: auto;
+            background: #ffe6e5;
+            color: #b13e3e;
+            padding: 0.3rem 0.9rem;
+            font-size: 0.7rem;
+            border-radius: 30px;
+        }
+
+        .response-box {
+            background: #fefefe;
+            border-radius: 20px;
+            border: 1px solid #eef2f8;
+            margin-top: 1rem;
+            overflow: hidden;
+        }
+
+        .response-meta {
+            display: flex;
+            justify-content: space-between;
+            background: #fafcff;
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid #eef2f8;
+            font-size: 0.75rem;
+            color: #4c6a84;
+        }
+
+        .pre-block {
+            background: #fbfdff;
+            padding: 1rem;
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.75rem;
+            line-height: 1.4;
+            border-bottom: 1px solid #ecf3f9;
+        }
+
+        .pre-block:last-child {
+            border-bottom: none;
+        }
+
+        .error-block {
+            background: #fff6f5;
+            color: #bc5a4c;
+            border-left: 3px solid #e37b6b;
+        }
+
+        hr {
+            margin: 1rem 0;
+            border: 0;
+            height: 1px;
+            background: #e2eaf1;
+        }
+
+        .inline-badge {
+            background: #e9f0f5;
+            border-radius: 20px;
+            padding: 0.2rem 0.6rem;
+            font-size: 0.7rem;
+        }
+
+        @media (max-width: 780px) {
+            body { padding: 1rem; }
+            .panel { padding: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="two-columns">
+        <!-- LEFT: AUTH + REQUEST BUILDER -->
+        <div class="col">
+            <div class="card">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>🔐 Access & Token</h2>
+                        <span class="badge-soft" id="tokenMiniBadge">⚪ no token</span>
+                    </div>
+                    <div class="form-group">
+                        <label>👤 Username</label>
+                        <input type="text" id="username" placeholder="e.g., demo_admin, manager, user" value="demo_admin">
+                    </div>
+                    <div class="form-group">
+                        <label>🔒 Password</label>
+                        <input type="password" id="password" placeholder="password" value="pass123">
+                    </div>
+                    <div class="form-group">
+                        <label>🎭 Role (register only)</label>
+                        <select id="roleSelect">
+                            <option value="ADMIN">ADMIN</option>
+                            <option value="MANAGER">MANAGER</option>
+                            <option value="USER" selected>USER</option>
+                        </select>
+                    </div>
+                    <div class="flex-row" style="justify-content: space-between; gap: 10px;">
+                        <button id="loginBtn" class="primary" style="flex:1">🔑 Login</button>
+                        <button id="registerBtn" class="secondary" style="flex:1">📝 Register</button>
+                    </div>
+                    <div style="margin: 1rem 0 0.2rem 0;">
+                        <label>🎟️ JWT Token (auto-filled)</label>
+                        <div class="token-area">
+                            <textarea id="jwtToken" rows="2" placeholder="Token will appear after login" style="background:transparent; border: none; padding: 0; font-size:0.7rem; resize: none;"></textarea>
+                        </div>
+                        <button id="clearTokenBtn" class="small-icon" style="margin-top: 6px;">Clear token</button>
+                    </div>
+
+                    <hr>
+
+                    <div class="panel-header" style="margin-top: 0.5rem;">
+                        <h2>🌐 Request builder</h2>
+                    </div>
+                    <div class="form-group">
+                        <label>🔗 URL (relative or absolute)</label>
+                        <input type="text" id="requestUrl" placeholder="/debug/user/4   or   /auth/test-json" value="/debug/user/4">
+                        <div style="font-size:0.7rem; color:#6c86a3; margin-top: 4px;">Same origin — token added automatically</div>
+                    </div>
+                    <div class="form-group">
+                        <label>📌 Method</label>
+                        <select id="httpMethod">
+                            <option value="GET">GET</option>
+                            <option value="POST">POST</option>
+                            <option value="PUT">PUT</option>
+                            <option value="DELETE">DELETE</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>📦 JSON Body (optional)</label>
+                        <textarea id="requestBody" rows="3" placeholder='{"example": "data"}'></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>➕ Extra headers</label>
+                        <div id="headersList">
+                            <div class="key-value-row">
+                                <input type="text" class="header-key" placeholder="Header" value="Content-Type">
+                                <input type="text" class="header-value" placeholder="Value" value="application/json">
+                                <button class="remove-header-btn small-icon">✖</button>
+                            </div>
+                        </div>
+                        <button id="addHeaderBtn" class="secondary small-icon" style="margin-top: 4px;">+ Add header</button>
+                    </div>
+
+                    <button id="sendRequestBtn" class="primary" style="margin-top: 1rem; width: 100%; padding: 0.8rem;">🚀 Send request →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: RESPONSE INSPECTOR -->
+        <div class="col">
+            <div class="card">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>📡 Response details</h2>
+                        <span class="inline-badge" id="liveTimestamp">—</span>
+                    </div>
+                    <div id="responseContainer">
+                        <div class="response-box">
+                            <div class="response-meta">
+                                <span><strong>Status:</strong> <span id="statusValue">—</span></span>
+                                <span><strong>Duration:</strong> <span id="durationValue">—</span> ms</span>
+                            </div>
+                            <div class="pre-block" style="background:#fefefe;">
+                                <div style="font-weight:500; margin-bottom:6px;">📄 Raw response</div>
+                                <pre id="rawResponseText" style="margin:0; font-size:0.75rem; overflow-x:auto;">(waiting for request)</pre>
+                            </div>
+                            <div class="pre-block">
+                                <div style="font-weight:500; margin-bottom:6px;">🧩 JSON parsed (pretty)</div>
+                                <pre id="jsonPretty" style="margin:0; font-size:0.75rem;">—</pre>
+                            </div>
+                            <div class="pre-block error-block" id="errorBlock">
+                                <div style="font-weight:500;">⚠️ Logs & errors</div>
+                                <pre id="errorMessage" style="margin:0; background:transparent;">Ready. Token will be auto-fetched if missing when you send request.</pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+                        <button id="clearResponseBtn" class="secondary small-icon">🗑️ Clear logs</button>
+                    </div>
+                    <div style="font-size:0.65rem; text-align: center; margin-top: 1rem; color:#6f8eae;">
+                        ✨ Auto-token: if request fails with 401, token will be refetched automatically (login) and retry.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // DOM elements
+    const usernameEl = document.getElementById('username');
+    const passwordEl = document.getElementById('password');
+    const roleSelect = document.getElementById('roleSelect');
+    const loginBtn = document.getElementById('loginBtn');
+    const registerBtn = document.getElementById('registerBtn');
+    const jwtTokenArea = document.getElementById('jwtToken');
+    const clearTokenBtn = document.getElementById('clearTokenBtn');
+    const requestUrlInput = document.getElementById('requestUrl');
+    const httpMethodSelect = document.getElementById('httpMethod');
+    const requestBodyText = document.getElementById('requestBody');
+    const headersContainer = document.getElementById('headersList');
+    const addHeaderBtn = document.getElementById('addHeaderBtn');
+    const sendRequestBtn = document.getElementById('sendRequestBtn');
+    const tokenMiniBadge = document.getElementById('tokenMiniBadge');
+    const statusSpan = document.getElementById('statusValue');
+    const durationSpan = document.getElementById('durationValue');
+    const rawResponsePre = document.getElementById('rawResponseText');
+    const jsonPrettyPre = document.getElementById('jsonPretty');
+    const errorMsgPre = document.getElementById('errorMessage');
+    const clearResponseBtn = document.getElementById('clearResponseBtn');
+    const liveTimestampSpan = document.getElementById('liveTimestamp');
+
+    // Helper: update token UI
+    function updateTokenUI() {
+        const token = jwtTokenArea.value.trim();
+        if (token && token.length > 15) {
+            tokenMiniBadge.innerHTML = '✅ token active';
+            tokenMiniBadge.style.background = '#e0f0ea';
+            tokenMiniBadge.style.color = '#1b6b4c';
+        } else {
+            tokenMiniBadge.innerHTML = '⚪ no token';
+            tokenMiniBadge.style.background = '#eef2fa';
+            tokenMiniBadge.style.color = '#5c6f87';
+        }
+    }
+
+    function setAuthToken(rawToken) {
+        if (!rawToken) {
+            jwtTokenArea.value = '';
+            updateTokenUI();
+            return;
+        }
+        let formatted = rawToken;
+        if (!rawToken.startsWith('Bearer ') && !rawToken.startsWith('bearer ')) {
+            formatted = `Bearer ${rawToken}`;
+        }
+        jwtTokenArea.value = formatted;
+        updateTokenUI();
+    }
+
+    // API auth call (login/register)
+    async function performAuth(endpoint, payload) {
+        const resp = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+            let errMsg = data.message || data.error || JSON.stringify(data);
+            throw new Error(`HTTP ${resp.status}: ${errMsg}`);
+        }
+        if (!data.token) throw new Error('Token missing in response');
+        return data.token;
+    }
+
+    // Login action
+    async function handleLogin() {
+        const username = usernameEl.value.trim();
+        const pwd = passwordEl.value;
+        if (!username || !pwd) {
+            showError('Username and password required');
+            return;
+        }
+        try {
+            showInfo('Logging in...');
+            const token = await performAuth('/auth/login', { username, password: pwd, role: '' });
+            setAuthToken(token);
+            showSuccess(`✅ Login success. Token stored.`);
+            updateResponseUIPartial(null, null, null);
+        } catch (err) {
+            showError(`Login failed: ${err.message}`);
+            setAuthToken('');
+        }
+    }
+
+    async function handleRegister() {
+        const username = usernameEl.value.trim();
+        const pwd = passwordEl.value;
+        const role = roleSelect.value;
+        if (!username || !pwd) {
+            showError('Username and password required for registration');
+            return;
+        }
+        try {
+            showInfo('Registering ...');
+            const token = await performAuth('/auth/register', { username, password: pwd, role });
+            setAuthToken(token);
+            showSuccess(`🎉 Registered & logged in as ${username} (${role})`);
+            updateResponseUIPartial(null, null, null);
+        } catch (err) {
+            if (err.message.includes('already exists')) {
+                showError(`⚠️ User "${username}" already exists. Try Login.`);
+            } else {
+                showError(`Registration error: ${err.message}`);
+            }
+            setAuthToken('');
+        }
+    }
+
+    // Fetch with token, and auto-retry if 401 and auto-fetch token
+    async function performAuthorizedRequest(url, options, retry = true) {
+        let currentToken = jwtTokenArea.value.trim();
+        if (currentToken && !currentToken.startsWith('Bearer ')) {
+            currentToken = `Bearer ${currentToken}`;
+        }
+        const finalHeaders = { ...options.headers };
+        if (currentToken) finalHeaders['Authorization'] = currentToken;
+        const fetchOpts = { ...options, headers: finalHeaders };
+        const response = await fetch(url, fetchOpts);
+        if (response.status === (401 || 403) && retry) {
+            // token might be expired or missing; try auto-login using current credentials
+            const username = usernameEl.value.trim();
+            const password = passwordEl.value;
+            if (!username || !password) {
+                throw new Error('401 Unauthorized and no credentials stored to refresh token');
+            }
+            showInfo('🔄 Token expired or missing, auto-login and retry...');
+            let newToken;
+            try {
+                newToken = await performAuth('/auth/login', { username, password, role: '' });
+                setAuthToken(newToken);
+                // retry exactly once
+                const retryHeaders = { ...options.headers };
+                const freshBearer = newToken.startsWith('Bearer ') ? newToken : `Bearer ${newToken}`;
+                retryHeaders['Authorization'] = freshBearer;
+                const retryOpts = { ...options, headers: retryHeaders };
+                const retryResponse = await fetch(url, retryOpts);
+                return retryResponse;
+            } catch (authErr) {
+                throw new Error(`Auto-refresh failed: ${authErr.message}. Original 401.`);
+            }
+        }
+        return response;
+    }
+
+    // collect headers from dynamic rows
+    function collectHeadersFromUI() {
+        const headers = {};
+        const rows = headersContainer.querySelectorAll('.key-value-row');
+        rows.forEach(row => {
+            const keyInput = row.querySelector('.header-key');
+            const valInput = row.querySelector('.header-value');
+            const key = keyInput?.value.trim();
+            const val = valInput?.value.trim();
+            if (key && val) headers[key] = val;
+        });
+        return headers;
+    }
+
+    // send request main logic
+    sendRequestBtn.onclick = async () => {
+        let rawUrl = requestUrlInput.value.trim();
+        if (!rawUrl) {
+            showError('Please enter request URL');
+            return;
+        }
+        // normalize url (keep relative)
+        let finalUrl = rawUrl;
+        if (!rawUrl.startsWith('http') && !rawUrl.startsWith('/')) {
+            finalUrl = '/' + rawUrl;
+        }
+        const method = httpMethodSelect.value;
+        let bodyRaw = requestBodyText.value.trim();
+        let requestBodyJson = null;
+        let validJson = true;
+        if (bodyRaw && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+            try {
+                requestBodyJson = JSON.parse(bodyRaw);
+            } catch (e) {
+                showError(`Invalid JSON body: ${e.message}`);
+                return;
+            }
+        }
+        const customHeaders = collectHeadersFromUI();
+        // force content-type if missing and body is json
+        if (requestBodyJson && !customHeaders['Content-Type'] && !customHeaders['content-type']) {
+            customHeaders['Content-Type'] = 'application/json';
+        }
+        const fetchOptions = {
+            method: method,
+            headers: customHeaders,
+        };
+        if (requestBodyJson && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+            fetchOptions.body = JSON.stringify(requestBodyJson);
+        }
+        const startTime = performance.now();
+        try {
+            // before request show loading state
+            statusSpan.innerText = '⏳ sending...';
+            durationSpan.innerText = '—';
+            rawResponsePre.innerText = '(waiting)';
+            jsonPrettyPre.innerText = '—';
+            const response = await performAuthorizedRequest(finalUrl, fetchOptions, true);
+            const endTime = performance.now();
+            const duration = (endTime - startTime).toFixed(1);
+            const rawText = await response.text();
+            durationSpan.innerText = duration;
+            statusSpan.innerText = `${response.status} ${response.statusText}`;
+            liveTimestampSpan.innerText = new Date().toLocaleTimeString();
+            rawResponsePre.innerText = rawText || '(empty response)';
+            // parse json if possible
+            let prettyJson = '—';
+            let parsedData = null;
+            try {
+                if (rawText && (rawText.trim().startsWith('{') || rawText.trim().startsWith('['))) {
+                    parsedData = JSON.parse(rawText);
+                    prettyJson = JSON.stringify(parsedData, null, 2);
+                } else if (rawText.length > 0) {
+                    prettyJson = '⚠️ Not JSON (or malformed)';
+                }
+            } catch(e) {
+                prettyJson = `⚠️ JSON parse error: ${e.message}`;
+            }
+            jsonPrettyPre.innerText = prettyJson;
+            if (!response.ok) {
+                errorMsgPre.innerText = `❗ Server error (${response.status}). ${rawText.substring(0, 300)}`;
+                errorMsgPre.style.background = '#fff3f0';
+            } else {
+                errorMsgPre.innerText = `✅ Request succeeded (${duration} ms)`;
+                errorMsgPre.style.background = '#f0faf5';
+            }
+        } catch (err) {
+            const endTime = performance.now();
+            const duration = (endTime - startTime).toFixed(1);
+            durationSpan.innerText = duration;
+            statusSpan.innerText = '❌ Request failed';
+            rawResponsePre.innerText = `[Network/Error] ${err.message}`;
+            jsonPrettyPre.innerText = '—';
+            errorMsgPre.innerText = `🔥 Error: ${err.message}. Check endpoint or auth.`;
+            errorMsgPre.style.background = '#fff1ef';
+            liveTimestampSpan.innerText = new Date().toLocaleTimeString();
+        }
+    };
+
+    // response helpers
+    function showError(msg) {
+        errorMsgPre.innerText = msg;
+        errorMsgPre.style.background = '#fff3f0';
+        jsonPrettyPre.innerText = '—';
+    }
+    function showInfo(msg) {
+        errorMsgPre.innerText = msg;
+        errorMsgPre.style.background = '#f2f6fc';
+    }
+    function showSuccess(msg) {
+        errorMsgPre.innerText = msg;
+        errorMsgPre.style.background = '#eefaf3';
+    }
+    function updateResponseUIPartial(raw, status, duration) {
+        if (raw !== undefined) rawResponsePre.innerText = raw;
+        if (status) statusSpan.innerText = status;
+        if (duration) durationSpan.innerText = duration;
+    }
+
+    function clearResponse() {
+        rawResponsePre.innerText = '(cleared)';
+        jsonPrettyPre.innerText = '—';
+        statusSpan.innerText = '—';
+        durationSpan.innerText = '—';
+        errorMsgPre.innerText = 'Cleared. Ready for next request.';
+        errorMsgPre.style.background = '#fafcff';
+        liveTimestampSpan.innerText = '—';
+    }
+
+    // header management
+    function addHeaderRow(key = '', value = '') {
+        const row = document.createElement('div');
+        row.className = 'key-value-row';
+        row.innerHTML = `
+            <input type="text" class="header-key" placeholder="Header name" value="${escapeHtml(key)}">
+            <input type="text" class="header-value" placeholder="Value" value="${escapeHtml(value)}">
+            <button class="remove-header-btn small-icon">✖</button>
+        `;
+        const removeBtn = row.querySelector('.remove-header-btn');
+        removeBtn.addEventListener('click', () => row.remove());
+        headersContainer.appendChild(row);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // Initial dynamic header remove listeners
+    document.querySelectorAll('.remove-header-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const row = e.target.closest('.key-value-row');
+            if (row) row.remove();
+        });
+    });
+
+    addHeaderBtn.onclick = () => addHeaderRow('', '');
+    clearTokenBtn.onclick = () => { setAuthToken(''); showInfo('Token cleared manually.'); };
+    clearResponseBtn.onclick = clearResponse;
+    loginBtn.onclick = handleLogin;
+    registerBtn.onclick = handleRegister;
+
+    // optional: add a demo extra header row
+    addHeaderRow('X-Debug', 'auto-client');
+    // also set initial token status
+    updateTokenUI();
+    clearResponse();
+    showInfo('💡 Auto-token: If request returns 401, the app will automatically login using current credentials and retry.');
+</script>
+</body>
+</html>

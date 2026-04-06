@@ -22,6 +22,9 @@ interface ActionRepository : LongKeyRepository<Action> {
     @Query("SELECT a FROM Action a WHERE TYPE(a) = AppAction")
     fun GetAppActions(): List<AppAction>
 
+
+    fun findFirstByOrderByPerformedAtAsc(): Action?
+
 }
 
 
@@ -36,7 +39,9 @@ interface UserRepository : LongKeyRepository<Users> {
 
 
 @Repository
-interface StatisticsRepository : LongKeyRepository<Statistics>
+interface StatisticsRepository : LongKeyRepository<Statistics> {
+
+}
 
 
 

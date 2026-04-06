@@ -20,6 +20,7 @@ class UserController(
 ){
 
 
+    // http://localhost:8765/api/users/owninfo
     @GetMapping("/owninfo")
     fun getCurrentUser(@RequestHeader("Authorization") authHeader: String) : DtoUserInfoResponse {
         val token = authHeader.substring(7)

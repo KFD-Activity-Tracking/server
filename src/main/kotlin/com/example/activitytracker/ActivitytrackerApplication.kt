@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.runApplication
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.stereotype.Component
 import org.springframework.web.ErrorResponse
 import org.springframework.web.bind.annotation.ControllerAdvice
@@ -16,12 +17,21 @@ import java.time.LocalDateTime
 
 @SpringBootApplication
 @ConfigurationPropertiesScan
+@EnableScheduling
 class ActivitytrackerApplication
 
 fun main(args: Array<String>) {
 	runApplication<ActivitytrackerApplication>(*args)
 }
 
+
+val <T> T.NOT_COMPLETED get(): T {
+    val is_testing = true
+    if (!is_testing){
+        throw NotImplementedError("TODO!!!!")
+    }
+    return this
+}
 
 
 @Component

@@ -7,16 +7,17 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
+import jakarta.persistence.MappedSuperclass
+import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import java.time.LocalDateTime
 
 // Class responsible for storing statistic over some period of time
-@Entity
-@Table(name = "statistics")
-class Statistics(
 
-)
-{
+@MappedSuperclass
+class BasicStatistics (
+
+){
 
     @Column(name="id")
     @Id
@@ -33,9 +34,97 @@ class Statistics(
     @JoinColumn(name = "user_id")
     var user_id : Users? = null
 
-    //Main statistic data: \/
+}
 
 
+
+
+//Main statistic data: \/
+
+@Entity
+@Table(name = "statistics")
+class Statistics : BasicStatistics() {
+
+
+    @OneToMany
+    var app_statistics : MutableList<AppStatistics> = mutableListOf()
+
+
+
+    var date : LocalDateTime = LocalDateTime.now()
+
+
+
+    var active_time: Long = 0
+
+
+
+    var keyboard_to_mouse_coef: Float = 1f
+
+
+
+    var mouse_movement: Long = 0
+    var mouse_clicks: Int = 0
+    var keyboard_clicks: Int = 0
+
+
+
+    var idle_time: Long = 0
+
+
+
+    var average_cpu: Double = 0.0
+    var average_gpu: Double = 0.0
+    var average_ram: Double = 0.0
+
+
+
+    var login_time: Long = 0
+    var logout_time: Long = 0
+
+
+
+    var ai_eval: String = "no evaluation"
+
+    var number_of_breaks: Int = 0
 
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

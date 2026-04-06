@@ -15,9 +15,12 @@ class StatisticsController(
     val statisticsService: StatisticsService,
 ) {
 
+
+    //   http://localhost:8765/api/statistics/from/4
     @GetMapping("/from/{userId}")
     fun getStatisticsFromUser(@PathVariable userId: Long) = statisticsService.getAllFromUser(userId)
 
+    //   http://localhost:8765/api/statistics/debug/collect/4
     @PostMapping("/debug/collect/{userId}")
     fun collectStatistics(@PathVariable userId : Long) =
         statisticsService.collectStatsForUser(userId)

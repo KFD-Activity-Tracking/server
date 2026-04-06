@@ -25,6 +25,10 @@ interface AuthController {
 
 }
 
+
+
+
+
 @RestController
 @RequestMapping("/auth")
 class AuthControllerImpl (

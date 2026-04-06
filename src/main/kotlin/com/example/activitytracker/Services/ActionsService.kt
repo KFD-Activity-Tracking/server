@@ -12,9 +12,13 @@ interface ActionService {
 
     fun saveAllActions(actions: List<Action>) : List<Action>
 
+    fun getAllActions() : List<Action>
+
     fun getAllActionsFromUser(userId: Long): List<Action>
 
     fun removeAllById(actions : List<Long>)
+
+    fun getEarliestAction() : Action?
 }
 
 
@@ -63,8 +67,13 @@ class ActionServiceImpl(
         return result
     }
 
-    override fun getAllActionsFromUser(userId: Long): List<Action> = actionDao.findAll().filter { it.user_id == userId }.toList()
+    override fun getAllActions(): List<Action> = actionDao.findAll().toList()
+
+    override fun getAllActionsFromUser(userId: Long): List<Action> = actionDao.findAll().filter { it.userId == userId }.toList()
     override fun removeAllById(actions: List<Long>) = actionDao.deleteAllById(actions)
+
+
+    override fun getEarliestAction(): Action? = actionDao.findFirstByOrderByPerformedAtAsc()
 
 }
 
