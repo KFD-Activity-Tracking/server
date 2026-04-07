@@ -63,7 +63,7 @@ interface JwtService{
 
     fun validateToken(token: String): Boolean
 
-    fun extractUserFromHeader(authHeader: String): Users
+    fun extractUserFromHeader(authHeader: String): DtoSimpleUserMap
 }
 
 
@@ -127,7 +127,7 @@ class JwtServiceImpl(
         return true
     }
 
-    override fun extractUserFromHeader(authHeader: String): Users {
+    override fun extractUserFromHeader(authHeader: String): DtoSimpleUserMap {
         val username = extractUsername(authHeader.substring(7))
         val user = userService.getUserByName(username) ?: throw NotFoundException("User not found ${username}")
         return user

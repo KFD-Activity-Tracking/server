@@ -21,22 +21,14 @@ class UserController(
 
     // http://localhost:8765/api/users/owninfo
     @GetMapping("/owninfo")
-    fun getCurrentUser(@RequestHeader("Authorization") authHeader: String) : DtoUserInfoResponse {
-        val user = jwtService.extractUserFromHeader(authHeader)
-        val res = DtoUserInfoResponse(
-            user.id,
-            user.username,
-            user.role,
-        )
-        return res
-    }
+    fun getCurrentUser(@RequestHeader("Authorization") authHeader: String) = jwtService.extractUserFromHeader(authHeader)
 
 
     @GetMapping("/all")
     fun getAllUsers() = userService.getAllUsers();  //returns List<User>
 
     @PostMapping("/add")
-    fun addUser(@RequestBody userAuth: DtoAuthRequest) {
+    fun addUser(@RequestBody userAuth: DtoAuthRequest) : DtoSimpleUserMap {
         if (userService.getUserByName(userAuth.username) != null) {
             throw AlreadyExistsException("user ${userAuth.username} already exists")
         }
@@ -45,7 +37,7 @@ class UserController(
 
         val createRq = DtoCreateUserRequest(userAuth.username, userAuth.role, hashedPass)
 
-        userService.createUser(createRq)
+        return userService.createUser(createRq)
     }
 
 
@@ -55,7 +47,7 @@ class UserController(
     }
 
     @GetMapping("/findId/{userId}")
-    fun findUserById(@PathVariable userId: Long) : Users? = userService.getUserById(userId)
+    fun findUserById(@PathVariable userId: Long) : DtoSimpleUserMap? = userService.getUserById(userId)
 
 
 

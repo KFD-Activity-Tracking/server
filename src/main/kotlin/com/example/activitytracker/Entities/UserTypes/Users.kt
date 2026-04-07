@@ -6,8 +6,7 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.JoinTable
 import jakarta.persistence.ManyToMany
 import jakarta.persistence.Table
-
-
+import org.springframework.beans.factory.annotation.Value
 
 
 @Entity
@@ -55,7 +54,27 @@ class Users(
 
 
 
+interface ProjectionUser{
+    fun getId() : Long
+    fun getUsername() : String
+    fun getRole() : String
+    fun getPasswordHash() : String
 
+    @Value("#{target.subordinates.![id]}")
+    fun getSubordinates() : List<Long>
+
+
+}
+
+
+fun ProjectionUser.toDtoSimpleUserMap() : DtoSimpleUserMap{
+    return DtoSimpleUserMap(
+        id = getId(),
+        username = getUsername(),
+        role = getRole(),
+        subordinates = getSubordinates(),
+    )
+}
 
 
 data class DtoCreateUserRequest (
@@ -69,20 +88,24 @@ data class DtoSimpleUserMap (
     val username: String,
     val role: String,
     val subordinates: List<Long>,
-)
+){
+    fun toUserEntity(): Users{
+        return Users(
+            id = id,
+            username = username,
+            role = role,
+            subordinates = subordinates.map { Users(id=it) }.toMutableList(),
+        )
+    }
+}
 
-data class DtoUserInfoResponse(
-    val userId: Long,
-    val username: String,
-    val role: String,
-)
 
 //not sure, since I specify user by username it technically serves as ID which is wrong
 //
 data class DtoAuthRequest(
     val username: String,
     val password: String,
-    //for register only [ROLE_ADMIN, ROLE_USER, ROLE_MANAGER]
+    //for register only [ADMIN, USER, MANAGER]
     val role: String = "",
 )
 

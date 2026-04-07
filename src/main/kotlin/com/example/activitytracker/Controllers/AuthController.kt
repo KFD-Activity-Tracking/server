@@ -9,6 +9,7 @@ import com.example.activitytracker.JwtService
 import com.example.activitytracker.NotFoundException
 import com.example.activitytracker.UserService
 import org.springframework.security.crypto.password.PasswordEncoder
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -25,6 +26,25 @@ interface AuthController {
 }
 
 
+
+@RestController
+@RequestMapping("/api/info")
+class InfoController {
+
+    @GetMapping("/pages")
+    fun getAllPagesDescriptions() : List<Pair<String, String>>{
+        val res = mutableMapOf<String, String>()
+        val prefix = "http://localhost:8765/"
+
+        res["mainPage: basic functions"] = prefix+"frontend/mainpagev1"
+        res["aka postman: test requests"] = prefix+"frontend/postman"
+        res["directory: show all files"] = prefix+"frontend/paths"
+        res["test hello world: some test"] = prefix+"frontend/hello/world"
+
+        return res.toList()
+    }
+
+}
 
 
 
@@ -49,13 +69,13 @@ class AuthControllerImpl (
 
     @PostMapping("/login")
     override fun login (@RequestBody request: DtoAuthRequest) : DtoTokenResponse {
-        val user = userService.getUserByName(request.username)!!
+        val user = userService.getDetailedByName(request.username)!!
 
-        if (!passwordEncoder.matches(request.password, user.passwordHash)){
+        if (!passwordEncoder.matches(request.password, user.getPasswordHash())){
             throw BadCredentialsException("Wrong credentials for user ${request.username}")
         }
 
-        val token = jwtService.generateJwt(user.username)
+        val token = jwtService.generateJwt(user.getUsername())
 
         return DtoTokenResponse(token)
 

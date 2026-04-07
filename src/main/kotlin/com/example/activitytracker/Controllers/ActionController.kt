@@ -21,7 +21,7 @@ class ActionController(
 
         val user = jwtService.extractUserFromHeader(authHeader)
 
-        acts.forEach {it.user = user}
+        acts.forEach {it.user = Users(id = user.id)}
 
         actionService.saveAllActions(acts )
 

@@ -96,6 +96,8 @@ body {
     font-size: 14px;
     margin-top: 10px;
     text-align: center;
+    min-height: 40px;
+    word-wrap: break-word;
 }
 
 /* Main App Section Styles */
@@ -310,17 +312,22 @@ body {
     padding: 10px;
     border-radius: 5px;
     text-align: center;
+    min-height: 50px;
+    word-wrap: break-word;
 }
 
 .action-message.success {
     background: #c6f6d5;
     color: #22543d;
+    border: 1px solid #22543d;
 }
 
 .action-message.error {
     background: #fed7d7;
     color: #742a2a;
+    border: 1px solid #742a2a;
 }
+
 
 /* Actions List Section */
 .actions-list-section {
@@ -475,22 +482,15 @@ body {
     color: #a0aec0;
 }
 
-/* Enhanced tracking feedback */
+/* Remove any animation/pulse effects */
 .tracking-active {
-    animation: pulse 1s infinite;
+    /* Removed animation */
 }
 
 @keyframes pulse {
-    0% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.7;
-    }
-    100% {
-        opacity: 1;
-    }
+    /* Removed */
 }
+
 
 .coordinates {
     font-weight: bold;
@@ -515,11 +515,75 @@ body {
 
 
 
+/* Menu Section Styles */
+.menu-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.menu-section h3 {
+    color: white;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.menu-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.menu-link {
+    color: white;
+    text-decoration: none;
+    padding: 5px 12px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+    transition: all 0.3s;
+    font-size: 14px;
+}
+
+.menu-link:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.menu-error {
+    color: #fed7d7;
+    font-size: 14px;
+}
 
 
 
 
 
+
+
+.small-btn {
+    padding: 4px 10px;
+    font-size: 12px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.small-btn:hover {
+    background: #5a67d8;
+}
+.error-btn {
+    background: #e53e3e;
+}
+.error-btn:hover {
+    background: #c53030;
+}
+.error-details {
+    word-break: break-word;
+    white-space: pre-wrap;
+}
 
 
 
