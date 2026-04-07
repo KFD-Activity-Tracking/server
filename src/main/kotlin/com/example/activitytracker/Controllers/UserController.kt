@@ -46,6 +46,10 @@ class UserController(
         userService.deleteUser(userId)
     }
 
+    @PostMapping("/update")
+    fun updateUser(@RequestBody user: DtoSimpleUserMap) : DtoSimpleUserMap = userService.updateUser(user)
+
+
     @GetMapping("/findId/{userId}")
     fun findUserById(@PathVariable userId: Long) : DtoSimpleUserMap? = userService.getUserById(userId)
 
