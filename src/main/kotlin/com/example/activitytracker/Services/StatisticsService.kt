@@ -4,6 +4,7 @@ import com.example.activitytracker.Services.AppStatisticService
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
+import java.time.LocalDateTime
 import java.time.ZoneOffset
 import kotlin.math.sqrt
 import kotlin.time.Duration.Companion.minutes
@@ -40,13 +41,13 @@ class StatisticsServiceImpl (
 
         val sorted = actions.sortedBy { it.performedAt }
 
-        statistic.start_time = sorted.first().performedAt
-        statistic.end_time = sorted.last().performedAt
+        statistic.start_time = sorted.firstOrNull()?.performedAt ?: LocalDateTime.now(ZoneOffset.UTC)
+        statistic.end_time = sorted.lastOrNull()?.performedAt ?: LocalDateTime.now(ZoneOffset.UTC)
 
 
         val app_actions = actions.filter { it is AppAction }.map { it as AppAction }.groupBy { it.app_name }
         val mouse_actions = actions.filter { it is MouseAction }.map { it as MouseAction }
-        val keyboard_actions = actions.filter { it is MouseAction }.map { it as KeyboardAction }
+        val keyboard_actions = actions.filter { it is KeyboardAction }.map { it as KeyboardAction }
 
 
         app_actions.forEach { app_name, named ->
@@ -68,7 +69,6 @@ class StatisticsServiceImpl (
         statistic.idle_time = statistic.logout_time - statistic.logout_time - statistic.active_time
 
         println("Other later").NOT_COMPLETED    //other fields
-
 
 
 

@@ -56,6 +56,12 @@ class HttpFrontend(
     }
 
 
+    @GetMapping("/statistics/ui")
+    fun statisticsHtmlUi(): String {
+        return "statisticsDisplay"
+    }
+
+
 
     init {
         println("http://localhost:8765/frontend/deepseektest")

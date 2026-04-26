@@ -40,6 +40,7 @@ class InfoController {
         res["aka postman: test requests"] = prefix+"frontend/postman"
         res["directory: show all files"] = prefix+"frontend/paths"
         res["test hello world: some test"] = prefix+"frontend/hello/world"
+        res["watch statistics"] = prefix+"frontend/statistics/ui"
 
         return res.toList()
     }

@@ -7,7 +7,9 @@ import org.springframework.boot.runApplication
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.scheduling.annotation.EnableScheduling
+import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseStatus
@@ -37,8 +39,18 @@ val <T> T.NOT_COMPLETED get(): T {
 class StartupTasks (
     val userController: UserController,
     val userService: UserService,
-) : CommandLineRunner {
-    override fun run(vararg args: String?) {
+) {
+
+    var used = false
+
+    @Scheduled(fixedDelay = 200)
+    @Transactional
+    fun once() {
+        if (used){
+            return
+        }
+        used = true
+        println("RUNNING ONE-TIME TASKS")
         try {
             val defaultUser = userService.getUserByName("user")
             if (defaultUser != null) {
@@ -48,9 +60,10 @@ class StartupTasks (
             println(e.message)
         }
         try {
-            userController.addUser(DtoAuthRequest("user", "user", "USER"))
+            val ers = userController.addUser(DtoAuthRequest("user", "user", "USER"))
+            println("ADDED USER ${ers.id}, ${ers.username}")
         } catch (e: Exception) {
-            println(e.message)
+            println("ERROR ADDING USER: : : :: $e ")
         }
     }
 

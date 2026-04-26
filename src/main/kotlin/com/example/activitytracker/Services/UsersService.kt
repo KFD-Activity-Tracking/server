@@ -42,11 +42,9 @@ class UserServiceImpl (
 
 
     override fun getUserByName(name: String): DtoSimpleUserMap? =
-        (userDao.findProjectionByUsername(name) ?: throw NotFoundException("getUserByName failed in user service (reques = ${name})"))
-            .toDtoSimpleUserMap()
+        (userDao.findProjectionByUsername(name))?.toDtoSimpleUserMap()
 
     override fun getDetailedByName(username: String): ProjectionUser? = userDao.findProjectionByUsername(username)
-
 
     override fun createUser(user: DtoCreateUserRequest) : DtoSimpleUserMap {
         val userID = userDao.save(

@@ -84,6 +84,14 @@ class ConcatTest (
         printAll("IdCreatedAtBaseTable")
     }
 
+    @Test
+    fun StatisticTests(){
+        getEntities()
+        getControllers()
+        printAll("Users.kt")
+        printAll("Statistics")
+    }
+
 
     @Test
     fun AuthenticateBasicTests(){
