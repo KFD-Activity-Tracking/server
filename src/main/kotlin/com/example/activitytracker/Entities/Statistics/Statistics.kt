@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
+import jakarta.persistence.Lob
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.MappedSuperclass
 import jakarta.persistence.OneToMany
@@ -81,6 +82,15 @@ class Statistics : BasicStatistics() {
 
     var login_time: Long = 0
     var logout_time: Long = 0
+
+
+    // string represents x*y heatmap, each byte describes the density of clicks (per minute) in the cell's area
+    // 100*100 by default
+    @Lob
+    var heat_map: String = ""
+    var heat_map_width: Int = 0
+    @Lob
+    var clicks_over_time: String = ""
 
 
 

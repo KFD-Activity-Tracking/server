@@ -41,6 +41,7 @@ class InfoController {
         res["directory: show all files"] = prefix+"frontend/paths"
         res["test hello world: some test"] = prefix+"frontend/hello/world"
         res["watch statistics"] = prefix+"frontend/statistics/ui"
+        res["mainPageV2"] = prefix+"frontend/mainpagev2"
 
         return res.toList()
     }
@@ -70,7 +71,8 @@ class AuthControllerImpl (
 
     @PostMapping("/login")
     override fun login (@RequestBody request: DtoAuthRequest) : DtoTokenResponse {
-        val user = userService.getDetailedByName(request.username)!!
+        val user = userService.getDetailedByName(request.username)
+            ?: throw NotFoundException("User ${request.username} not found")
 
         if (!passwordEncoder.matches(request.password, user.getPasswordHash())){
             throw BadCredentialsException("Wrong credentials for user ${request.username}")
@@ -98,6 +100,7 @@ class AuthControllerImpl (
 
         val user = userService.createUser(DtoCreateUserRequest(
             username = request.username,
+            request.username,
             request.role,
             passwordEncoder.encode(request.password),
         ))

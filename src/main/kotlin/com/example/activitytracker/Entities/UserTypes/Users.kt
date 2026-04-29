@@ -18,6 +18,10 @@ class Users(
     @Column(name = "username")
     var username: String = "",
 
+
+    @Column(name = "front_name")
+    var realName: String = "",
+
     @Column(name = "role")
     var role: String = "",
 
@@ -42,8 +46,9 @@ class Users(
         return DtoSimpleUserMap(
             this.id,
             this.username,
+            this.realName,
             this.role,
-            this.subordinates.map { it.id }
+            this.subordinates.map { it.id },
         )
     }
 
@@ -59,6 +64,7 @@ interface ProjectionUser{
     fun getUsername() : String
     fun getRole() : String
     fun getPasswordHash() : String
+    fun getRealName() : String
 
     @Value("#{target.subordinates.![id]}")
     fun getSubordinates() : List<Long>
@@ -73,12 +79,14 @@ fun ProjectionUser.toDtoSimpleUserMap() : DtoSimpleUserMap{
         username = getUsername(),
         role = getRole(),
         subordinates = getSubordinates(),
+        realName = getRealName(),
     )
 }
 
 
 data class DtoCreateUserRequest (
     val username: String,
+    val realName: String,
     val role: String,
     val hashPassword : String,
 )
@@ -86,6 +94,7 @@ data class DtoCreateUserRequest (
 data class DtoSimpleUserMap (
     val id: Long,
     val username: String,
+    var realName: String,
     val role: String,
     val subordinates: List<Long>,
 ){
@@ -93,6 +102,7 @@ data class DtoSimpleUserMap (
         return Users(
             id = id,
             username = username,
+            realName = realName,
             role = role,
             subordinates = subordinates.map { Users(id=it) }.toMutableList(),
         )

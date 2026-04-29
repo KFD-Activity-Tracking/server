@@ -35,7 +35,7 @@ class UserController(
 
         val hashedPass = passwordEncoder.encode(userAuth.password);
 
-        val createRq = DtoCreateUserRequest(userAuth.username, userAuth.role, hashedPass)
+        val createRq = DtoCreateUserRequest(userAuth.username, userAuth.username, userAuth.role, hashedPass)
 
         return userService.createUser(createRq)
     }

@@ -8,7 +8,9 @@ import jakarta.persistence.Table
 @Entity
 class MouseAction() : Action() {
     @Column(name = "delta_x")
-    var delta_x: Int = 0
+    var delta_x: Float = 0f
     @Column(name = "delta_y")
-    var delta_y: Int = 0
+    var delta_y: Float = 0f
+    @Column(name = "is_click")
+    var is_click: Boolean = false
 }

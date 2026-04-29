@@ -50,6 +50,12 @@ class HttpFrontend(
     }
 
 
+    @GetMapping("/mainpagev2")
+    fun frontendTestsv2(): String {
+        return "mainpagev2"
+    }
+
+
     @GetMapping("/postman")
     fun postmanNotReally(): String {
         return "postmannopostman"

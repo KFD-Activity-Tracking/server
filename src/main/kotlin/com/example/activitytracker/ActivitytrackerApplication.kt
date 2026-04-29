@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler
 import java.time.LocalDateTime
+import kotlin.random.Random
 
 @SpringBootApplication
 @ConfigurationPropertiesScan
@@ -39,6 +40,8 @@ val <T> T.NOT_COMPLETED get(): T {
 class StartupTasks (
     val userController: UserController,
     val userService: UserService,
+    val actionService: ActionService,
+    val statsService: StatisticsService,
 ) {
 
     var used = false
@@ -51,20 +54,40 @@ class StartupTasks (
         }
         used = true
         println("RUNNING ONE-TIME TASKS")
-        try {
-            val defaultUser = userService.getUserByName("user")
-            if (defaultUser != null) {
-                userService.deleteUser(defaultUser.id)
-            }
-        } catch (e: Exception) {
-            println(e.message)
-        }
+
+
         try {
             val ers = userController.addUser(DtoAuthRequest("user", "user", "USER"))
             println("ADDED USER ${ers.id}, ${ers.username}")
         } catch (e: Exception) {
             println("ERROR ADDING USER: : : :: $e ")
         }
+
+
+        val ers = userService.getUserByName("user") ?: throw NotFoundException("User not found IN STARTUP")
+
+        ers.realName = "Ivan Ivanov CanBeCyrillicIThink"
+        userService.updateUser(ers)
+        val random = Random(System.currentTimeMillis())
+
+        actionService.saveAllActions(List<Action>(200, {
+            MouseAction().also { it.user = Users(id=ers.id)
+                it.delta_x = random.nextFloat()
+                it.delta_y = random.nextFloat()
+                it.is_click = random.nextBoolean()
+            }
+        }))
+        statsService.collectAllStatistics()
+
+        actionService.saveAllActions(List<Action>(200, {
+            MouseAction().also { it.user = Users(id=ers.id)
+                it.delta_x = random.nextFloat()
+                it.delta_y = random.nextFloat()
+                it.is_click = random.nextBoolean()
+            }
+        }))
+
+        println("ADDED actions for  ${ers.id}, ${ers.username}")
     }
 
 }

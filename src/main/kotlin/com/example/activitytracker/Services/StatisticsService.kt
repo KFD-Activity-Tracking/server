@@ -6,6 +6,8 @@ import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.sqrt
 import kotlin.time.Duration.Companion.minutes
 
@@ -41,10 +43,6 @@ class StatisticsServiceImpl (
 
         val sorted = actions.sortedBy { it.performedAt }
 
-        statistic.start_time = sorted.firstOrNull()?.performedAt ?: LocalDateTime.now(ZoneOffset.UTC)
-        statistic.end_time = sorted.lastOrNull()?.performedAt ?: LocalDateTime.now(ZoneOffset.UTC)
-
-
         val app_actions = actions.filter { it is AppAction }.map { it as AppAction }.groupBy { it.app_name }
         val mouse_actions = actions.filter { it is MouseAction }.map { it as MouseAction }
         val keyboard_actions = actions.filter { it is KeyboardAction }.map { it as KeyboardAction }
@@ -60,13 +58,52 @@ class StatisticsServiceImpl (
             statistic.app_statistics.add(app_statistic)
         }
 
+
+        var mouse_moves : Double = 0.0
+        for (i in 1..<mouse_actions.size) {
+            var dx = mouse_actions[i].delta_x-mouse_actions[i-1].delta_x
+            var dy = mouse_actions[i].delta_y-mouse_actions[i-1].delta_y
+            mouse_moves += sqrt((dx*dx+dy*dy).toDouble())
+        }
+        mouse_moves*=100
+
+        val heatMapWidth = 100
+        val heatMapHeight = 100
+        var heat_map = MutableList<Int>(heatMapHeight*heatMapWidth, {0})
+        mouse_actions.forEach {
+            val mapx = (it.delta_x*heatMapWidth).toInt().coerceIn(0, heatMapWidth-1)
+            val mapy = (it.delta_y*heatMapHeight).toInt().coerceIn(0, heatMapHeight-1)
+            val realIx = mapy*heatMapWidth+mapx
+            heat_map[realIx]++
+        }
+        statistic.heat_map_width = heatMapWidth
+        statistic.heat_map = String(List<Char>(heat_map.size, {min(255, heat_map[it]).toChar()}).toCharArray())
+
+
+        //todo : Clicks over time
+
+
+
+
+        statistic.start_time = sorted.firstOrNull()?.performedAt ?: LocalDateTime.now(ZoneOffset.UTC)
+        statistic.end_time = sorted.lastOrNull()?.performedAt ?: LocalDateTime.now(ZoneOffset.UTC)
+
+        statistic.mouse_movement = mouse_moves.toLong()
+
         statistic.keyboard_clicks = keyboard_actions.size
-        statistic.mouse_movement = mouse_actions.fold(0.0) {acc, action -> acc+ sqrt((action.delta_x*action.delta_x+action.delta_y*action.delta_y).toDouble()) }.toLong()
+        statistic.mouse_clicks = mouse_actions.count { it.is_click }
+        statistic.keyboard_to_mouse_coef = keyboard_actions.size.toFloat()/max(1,statistic.mouse_clicks)
 
 
         statistic.active_time = 0L.NOT_COMPLETED
 
-        statistic.idle_time = statistic.logout_time - statistic.logout_time - statistic.active_time
+        statistic.idle_time =
+            statistic.start_time.toEpochSecond(ZoneOffset.UTC)-statistic.end_time.toEpochSecond(ZoneOffset.UTC) -
+                    statistic.active_time
+
+
+
+
 
         println("Other later").NOT_COMPLETED    //other fields
 
