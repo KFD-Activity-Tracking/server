@@ -21,12 +21,16 @@ class Users(
 
     @Column(name = "front_name")
     var realName: String = "",
+    @Column(name = "screen_ratio")
+    var screenRatio: Float = 1f,
 
     @Column(name = "role")
     var role: String = "",
 
     @Column(name = "passwordHash")
     var passwordHash: String = "",
+
+
 
 
     @ManyToMany
@@ -49,6 +53,7 @@ class Users(
             this.realName,
             this.role,
             this.subordinates.map { it.id },
+            this.screenRatio
         )
     }
 
@@ -65,6 +70,7 @@ interface ProjectionUser{
     fun getRole() : String
     fun getPasswordHash() : String
     fun getRealName() : String
+    fun getScreenRatio() : Float
 
     @Value("#{target.subordinates.![id]}")
     fun getSubordinates() : List<Long>
@@ -79,6 +85,7 @@ fun ProjectionUser.toDtoSimpleUserMap() : DtoSimpleUserMap{
         username = getUsername(),
         role = getRole(),
         subordinates = getSubordinates(),
+        screenRatio = getScreenRatio(),
         realName = getRealName(),
     )
 }
@@ -97,6 +104,7 @@ data class DtoSimpleUserMap (
     var realName: String,
     val role: String,
     val subordinates: List<Long>,
+    var screenRatio: Float,
 ){
     fun toUserEntity(): Users{
         return Users(
@@ -105,6 +113,7 @@ data class DtoSimpleUserMap (
             realName = realName,
             role = role,
             subordinates = subordinates.map { Users(id=it) }.toMutableList(),
+            screenRatio = screenRatio,
         )
     }
 }

@@ -24,6 +24,16 @@ class UserController(
     fun getCurrentUser(@RequestHeader("Authorization") authHeader: String) = jwtService.extractUserFromHeader(authHeader)
 
 
+    @PostMapping("/postOwnRatio")
+    fun updateOwnScreenRatio(
+        @RequestHeader("Authorization") authHeader: String,
+        @RequestBody screenRatio: Float ) {
+        val usr = jwtService.extractUserFromHeader(authHeader)
+        usr.screenRatio = screenRatio
+        userService.updateUser(usr)
+    }
+
+
     @GetMapping("/all")
     fun getAllUsers() = userService.getAllUsers();  //returns List<User>
 

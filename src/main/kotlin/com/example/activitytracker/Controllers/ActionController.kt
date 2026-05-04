@@ -30,4 +30,6 @@ class ActionController(
     @GetMapping("/from/{userId}")
     fun getActionsOfUser(@PathVariable userId: Long) = actionService.getAllActionsFromUser(userId)
 
+
+
 }
