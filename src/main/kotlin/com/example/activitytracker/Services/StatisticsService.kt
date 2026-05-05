@@ -1,6 +1,8 @@
 package com.example.activitytracker
 
+import com.example.activitytracker.Services.ActionAnalysisService
 import com.example.activitytracker.Services.AppStatisticService
+import kotlinx.coroutines.runBlocking
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
@@ -31,9 +33,17 @@ class StatisticsServiceImpl (
 
     val statisticsDao: StatisticsRepository,
     val appStatisticService: AppStatisticService,
+
+    val actionAnalysisService: ActionAnalysisService,
 ) : StatisticsService {
 
+
+
     override fun collectStatsForUser(userId: Long): Statistics {
+
+        val performAiEval = true
+
+
 
         val actions = actionService.getAllActionsFromUser(userId)
 
@@ -42,6 +52,10 @@ class StatisticsServiceImpl (
         statistic.user_id = Users(id = userId)
 
         val sorted = actions.sortedBy { it.performedAt }
+
+        statistic.start_time = sorted.firstOrNull()?.performedAt ?: LocalDateTime.now(ZoneOffset.UTC)
+        statistic.end_time = sorted.lastOrNull()?.performedAt ?: LocalDateTime.now(ZoneOffset.UTC)
+        val all_time_seconds : Long = statistic.start_time.toEpochSecond(ZoneOffset.UTC)-statistic.end_time.toEpochSecond(ZoneOffset.UTC)
 
         val app_actions = actions.filter { it is AppAction }.map { it as AppAction }.groupBy { it.app_name }
         val mouse_actions = actions.filter { it is MouseAction }.map { it as MouseAction }
@@ -80,13 +94,20 @@ class StatisticsServiceImpl (
         statistic.heat_map = String(List<Char>(heat_map.size, {min(255, heat_map[it]).toChar()}).toCharArray())
 
 
-        //todo : Clicks over time
+
+        val time_stamps : Int  = max(20, min(all_time_seconds.toInt()/60/5, 500))
+        val clicks_per_stamp = MutableList<Int>(time_stamps, {0})
+        mouse_actions.filter { it.is_click }.forEach {
+            val passed = it.performedAt.toEpochSecond(ZoneOffset.UTC) -
+                            statistic.start_time.toEpochSecond(ZoneOffset.UTC)
+            val relative = time_stamps*(1.0*passed/all_time_seconds).toInt().coerceIn(0,time_stamps-1)
+            clicks_per_stamp[relative.toInt()]+=1
+        }
+
+        statistic.clicks_over_time = String(CharArray(time_stamps, {min(255,clicks_per_stamp[it]).toChar()}))
 
 
 
-
-        statistic.start_time = sorted.firstOrNull()?.performedAt ?: LocalDateTime.now(ZoneOffset.UTC)
-        statistic.end_time = sorted.lastOrNull()?.performedAt ?: LocalDateTime.now(ZoneOffset.UTC)
 
         statistic.mouse_movement = mouse_moves.toLong()
 
@@ -97,9 +118,38 @@ class StatisticsServiceImpl (
 
         statistic.active_time = 0L.NOT_COMPLETED
 
-        statistic.idle_time =
-            statistic.start_time.toEpochSecond(ZoneOffset.UTC)-statistic.end_time.toEpochSecond(ZoneOffset.UTC) -
-                    statistic.active_time
+        statistic.idle_time = all_time_seconds - statistic.active_time
+
+
+
+        if (performAiEval){
+            try {
+                println("Starting AI evaluation for user $userId...")
+
+                // blocking since we are in a non-suspend function
+                val analysis = runBlocking {
+                    actionAnalysisService.analyzeActions(actions, userId)
+                }
+
+
+                statistic.ai_eval = "Analysis performed at ${LocalDateTime.now().toString()} \n" +
+                        "Using ${actionAnalysisService.getModelName()} as model for user ${userId} \n" +
+                        "Analyzed: ${actions.size} actions \n" +
+                        "Anomalies: ${analysis.is_anomalous}, fraud probability: ${analysis.fraud_probability} \n" +
+                        "Issues: ${analysis.issues.joinToString { it.substring(0,min(80, it.length)) }} \n"
+
+                println("DEBUG ${statistic.ai_eval}")
+
+            } catch (e: Exception) {
+                println("DEBUG AI evaluation failed for user $userId: ${e.message}")
+                val errorEval = mapOf(
+                    "error" to e.message,
+                    "timestamp" to System.currentTimeMillis(),
+                    "fallback" to "rule-based"
+                )
+                statistic.ai_eval = errorEval.toString()
+            }
+        }
 
 
 

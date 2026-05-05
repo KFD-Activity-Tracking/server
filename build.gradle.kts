@@ -70,6 +70,8 @@ dependencies {
 
     implementation("com.h2database:h2")
 
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactive:1.7.3")
 
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.2")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")

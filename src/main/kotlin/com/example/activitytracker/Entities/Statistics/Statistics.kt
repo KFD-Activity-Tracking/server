@@ -94,6 +94,7 @@ class Statistics : BasicStatistics() {
 
 
 
+    @Lob
     var ai_eval: String = "no evaluation"
 
     var number_of_breaks: Int = 0

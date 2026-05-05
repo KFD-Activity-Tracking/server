@@ -40,17 +40,13 @@ class ActionServiceImpl(
 
 
 
-        println("DEBUG $actions")
         val result = mutableListOf<Action>()
 
         val groups = actions.groupBy { it::class.java }
 
         for (group in groups) {
-
-            println("DEBUG ${group.key}")
             when (group.key) {
                 MouseAction::class.java -> {
-                    println("DEBUG ${group.value} actions")
                     result.addAll(actionDao.saveAll<MouseAction>(
                         group.value as List<MouseAction>))
                 }

@@ -4,6 +4,8 @@ import org.springframework.boot.CommandLineRunner
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.runApplication
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.scheduling.annotation.EnableScheduling
@@ -13,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseStatus
+import org.springframework.web.client.RestTemplate
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler
 import java.time.LocalDateTime
 import kotlin.random.Random
@@ -26,6 +29,16 @@ fun main(args: Array<String>) {
 	runApplication<ActivitytrackerApplication>(*args)
 }
 
+
+
+@Configuration
+class AppConfig {
+
+    @Bean
+    fun restTemplate(): RestTemplate {
+        return RestTemplate()
+    }
+}
 
 val <T> T.NOT_COMPLETED get(): T {
     val is_testing = true

@@ -28,7 +28,19 @@ spring:
     hibernate:
       ddl-auto: update
     database-platform: org.hibernate.dialect.MySQL8Dialect
-    show-sql: true
+    show-sql: false
+
+
+
+ollama:
+  url: ${OLLAMA_URL:http://ollama:11434}
+
+ai:
+  model:
+    name: ${AI_MODEL_NAME:llama3.2:3b}
+  enabled: ${AI_ENABLED:true}
+  fallback:
+    no-model: true
 
 
 
