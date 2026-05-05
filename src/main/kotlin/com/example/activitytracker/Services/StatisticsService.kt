@@ -55,7 +55,7 @@ class StatisticsServiceImpl (
 
         statistic.start_time = sorted.firstOrNull()?.performedAt ?: LocalDateTime.now(ZoneOffset.UTC)
         statistic.end_time = sorted.lastOrNull()?.performedAt ?: LocalDateTime.now(ZoneOffset.UTC)
-        val all_time_seconds : Long = statistic.start_time.toEpochSecond(ZoneOffset.UTC)-statistic.end_time.toEpochSecond(ZoneOffset.UTC)
+        val all_time_seconds : Long = statistic.end_time.toEpochSecond(ZoneOffset.UTC)-statistic.start_time.toEpochSecond(ZoneOffset.UTC)
 
         val app_actions = actions.filter { it is AppAction }.map { it as AppAction }.groupBy { it.app_name }
         val mouse_actions = actions.filter { it is MouseAction }.map { it as MouseAction }
@@ -74,12 +74,12 @@ class StatisticsServiceImpl (
 
 
         var mouse_moves : Double = 0.0
-        for (i in 1..<mouse_actions.size) {
-            var dx = mouse_actions[i].delta_x-mouse_actions[i-1].delta_x
-            var dy = mouse_actions[i].delta_y-mouse_actions[i-1].delta_y
-            mouse_moves += sqrt((dx*dx+dy*dy).toDouble())
+        for (action in mouse_actions) {
+            val dx = action.delta_x.toDouble()
+            val dy = action.delta_y.toDouble()
+            mouse_moves += sqrt(dx*dx + dy*dy)
         }
-        mouse_moves*=100
+        mouse_moves *= 100
 
         val heatMapWidth = 100
         val heatMapHeight = 100
@@ -91,7 +91,8 @@ class StatisticsServiceImpl (
             heat_map[realIx]++
         }
         statistic.heat_map_width = heatMapWidth
-        statistic.heat_map = String(List<Char>(heat_map.size, {min(255, heat_map[it]).toChar()}).toCharArray())
+        val maxHeat = heat_map.maxOrNull()?.takeIf { it > 0 } ?: 1
+        statistic.heat_map = String(CharArray(heat_map.size) { (heat_map[it] * 255 / maxHeat).coerceIn(0, 255).toChar() })
 
 
 

@@ -79,7 +79,10 @@ class UserServiceImpl (
             }
         }
 
-        val userId = userDao.save(user.toUserEntity()).id.NOT_COMPLETED //same
+        val entity = user.toUserEntity()
+        entity.passwordHash = user_old.passwordHash
+
+        val userId = userDao.save(entity).id.NOT_COMPLETED //same
 
         return userDao.findProjectionById(userId)?.toDtoSimpleUserMap()
             ?: throw HelloException("unexpected user with id ${user.id} not found")

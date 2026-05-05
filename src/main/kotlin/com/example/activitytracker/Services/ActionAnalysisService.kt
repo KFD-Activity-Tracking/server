@@ -380,7 +380,7 @@ class ActionAnalysisService(
 
         // Heuristic 4: No keyboard activity but many clicks
         if (keyboardActions.isEmpty() && mouseActions.size > 50) {
-            issues.add("Suspicious: No keyboard activity with $mouseActions mouse actions")
+            issues.add("Suspicious: No keyboard activity with ${mouseActions.size} mouse actions")
             fraudScore += 0.2
         }
 
