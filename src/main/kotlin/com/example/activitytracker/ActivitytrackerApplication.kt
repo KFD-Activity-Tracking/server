@@ -4,6 +4,7 @@ import org.springframework.boot.CommandLineRunner
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.runApplication
+import org.springframework.boot.web.client.RestTemplateBuilder
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpStatus
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.client.RestTemplate
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler
+import java.time.Duration
 import java.time.LocalDateTime
 import kotlin.random.Random
 
@@ -34,9 +36,13 @@ fun main(args: Array<String>) {
 @Configuration
 class AppConfig {
 
+
     @Bean
-    fun restTemplate(): RestTemplate {
-        return RestTemplate()
+    fun restTemplate(builder: RestTemplateBuilder): RestTemplate {
+        return builder
+            .connectTimeout(Duration.ofSeconds(10))
+            .readTimeout(Duration.ofMinutes(10))
+            .build()
     }
 }
 

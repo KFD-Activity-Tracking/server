@@ -107,21 +107,26 @@ class ActionAnalysisService(
             logger.info("Model '$modelName' not found. Pulling model (this may take several minutes on first run)...")
             pullModel()
 
-            // Verify model is ready
+            val maxAttempts = 300   // 300 * 2 = 10 minutes
             var attempts = 0
-            while (attempts < 30 && !isModelAvailable()) {
+            var modelReady = false
+            while (attempts < maxAttempts && !modelReady) {
                 delay(2000)
                 attempts++
-                if (attempts % 5 == 0) {
-                    logger.info("Still waiting for model '$modelName' to be ready... (${attempts * 2}s)")
+                modelReady = isModelAvailable()
+                if (modelReady) {
+                    logger.info("Model '$modelName' is ready after ${attempts * 2} seconds!")
+                    break
+                }
+                if (attempts % 15 == 0) { // Log every 30 seconds
+                    logger.info("Still waiting for model '$modelName' to download... (${attempts * 2}s elapsed)")
                 }
             }
 
-            if (isModelAvailable()) {
-                logger.info("Model '$modelName' is ready for use!")
+            if (modelReady) {
                 modelsReady.set(true)
             } else {
-                logger.error("Failed to load model '$modelName' after multiple attempts")
+                logger.error("Model '$modelName' did not become ready after 10 minutes")
                 if (fallbackWhenNoModel) {
                     logger.warn("Running in fallback mode - rule-based analysis only")
                 }

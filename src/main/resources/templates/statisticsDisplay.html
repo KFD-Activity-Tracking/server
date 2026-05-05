@@ -59,6 +59,9 @@
             border-radius: 40px;
             font-size: 0.9rem;
             font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .user-panel {
@@ -199,6 +202,7 @@
         th {
             background: #f8fafc;
             font-weight: 600;
+            white-space: nowrap;
         }
 
         .badge {
@@ -272,6 +276,49 @@
             margin-top: 10px;
         }
 
+        /* Statistic detail section */
+        .stat-detail-panel {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 16px;
+            margin-top: 12px;
+            display: none;
+        }
+
+        .stat-detail-panel.active {
+            display: block;
+        }
+
+        .heatmap-preview {
+            font-family: monospace;
+            font-size: 8px;
+            line-height: 1;
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 8px;
+            border-radius: 12px;
+            overflow-x: auto;
+            white-space: pre;
+            max-height: 200px;
+        }
+
+        .clicks-timeline {
+            max-height: 100px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.75rem;
+            background: #f1f5f9;
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .stat-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin: 8px 0;
+        }
+
         @media (max-width: 700px) {
             body { padding: 16px; }
             .header { flex-direction: column; align-items: stretch; }
@@ -292,9 +339,12 @@
     <div id="errorDisplay" class="error-banner" style="display: none;"></div>
 
     <div class="user-panel" style="margin-bottom: 20px; justify-content: space-between;">
-        <div style="display: flex; gap: 12px;">
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
             <select id="userSelect">
                 <option value="all">📊 ALL USERS (aggregated stats)</option>
+            </select>
+            <select id="statSelect" style="min-width: 200px;">
+                <option value="all">📋 All statistics records</option>
             </select>
             <button id="refreshStatsBtn" class="secondary"><i class="fas fa-sync-alt"></i> Refresh stats</button>
             <button id="collectStatsForUserBtn" class="outline"><i class="fas fa-database"></i> Collect (force)</button>
@@ -329,10 +379,33 @@
             <div><strong>CPU avg:</strong> <span id="avgCpu">—</span> % &nbsp;&nbsp;| <strong>RAM avg:</strong> <span id="avgRam">—</span> GB</div>
             <div><strong>GPU avg:</strong> <span id="avgGpu">—</span> % &nbsp;&nbsp;| <strong>Idle time:</strong> <span id="totalIdle">—</span> ms</div>
             <div style="margin-top: 14px;"><i class="fas fa-robot"></i> AI evaluation sample: <span id="aiEvalSample">—</span></div>
+            <div style="margin-top: 8px;"><i class="fas fa-mouse-pointer"></i> Mouse clicks total: <span id="totalMouseClicks">—</span></div>
         </div>
         <div class="card">
             <div class="card-title"><i class="fas fa-table-list"></i> App usage (top apps)</div>
             <div id="appUsageContainer">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Statistic detail panel (for selected stat) -->
+    <div class="card" id="statDetailCard" style="margin-top: 8px;">
+        <div class="card-title">
+            <i class="fas fa-search-plus"></i>
+            Statistic Detail View
+            <span style="font-size: 0.8rem; color: #64748b; margin-left: 12px;" id="statDetailTitle">— Select a statistic from the table —</span>
+        </div>
+        <div class="stat-detail-panel" id="statDetailPanel">
+            <div class="stat-row" id="statDetailContent">
+                <div>Select a statistic row to view details</div>
+            </div>
+            <div style="margin-top: 16px;">
+                <strong>Heat Map Preview:</strong>
+                <div class="heatmap-preview" id="heatmapPreview">No heat map data</div>
+            </div>
+            <div style="margin-top: 12px;">
+                <strong>Clicks Over Time:</strong>
+                <div class="clicks-timeline" id="clicksTimeline">No click timeline data</div>
+            </div>
         </div>
     </div>
 
@@ -342,10 +415,28 @@
         <div class="table-wrapper">
             <table id="statsTable">
                 <thead>
-                <tr><th>ID</th><th>Start time</th><th>End time</th><th>Active(ms)</th><th>Idle(ms)</th><th>Mouse mov</th><th>K clicks</th><th>M clicks</th><th>K/M coef</th><th>CPU avg</th><th>RAM avg</th><th>AI eval</th><th>#breaks</th><th>Login/logout</th></tr>
+                <tr>
+                    <th>ID</th>
+                    <th>Date</th>
+                    <th>Start time</th>
+                    <th>End time</th>
+                    <th>Active(ms)</th>
+                    <th>Idle(ms)</th>
+                    <th>Mouse mov</th>
+                    <th>K clicks</th>
+                    <th>M clicks</th>
+                    <th>K/M coef</th>
+                    <th>CPU avg</th>
+                    <th>RAM avg</th>
+                    <th>GPU avg</th>
+                    <th>AI eval</th>
+                    <th>#breaks</th>
+                    <th>Login/out</th>
+                    <th>Actions</th>
+                </tr>
                 </thead>
                 <tbody id="statsTableBody">
-                <tr><td colspan="14">Select a user or click refresh</td></tr>
+                <tr><td colspan="17">Select a user or click refresh</td></tr>
                 </tbody>
             </table>
         </div>
@@ -380,6 +471,7 @@
     let currentUser = null;
     let allUsers = [];
     let currentSelectedUserId = 'all';
+    let currentSelectedStatId = 'all';
     let currentStatisticsMap = new Map();
     let timelineChart = null;
 
@@ -561,6 +653,24 @@
         }
     }
 
+    function renderStatSelect(statsArray) {
+        const select = document.getElementById('statSelect');
+        select.innerHTML = '<option value="all">📋 All statistics records</option>';
+        if (statsArray && statsArray.length) {
+            statsArray.forEach(stat => {
+                const dateStr = stat.date ? new Date(stat.date).toLocaleDateString() :
+                               (stat.start_time ? new Date(stat.start_time).toLocaleDateString() : 'N/A');
+                select.innerHTML += `<option value="${stat.id}">📅 ID:${stat.id} - ${dateStr} - Active:${formatNumber(stat.active_time || 0)}ms</option>`;
+            });
+        }
+        if (currentSelectedStatId !== 'all' && statsArray.find(s => s.id == currentSelectedStatId)) {
+            select.value = currentSelectedStatId;
+        } else {
+            select.value = 'all';
+            currentSelectedStatId = 'all';
+        }
+    }
+
     async function fetchStatisticsForUser(userId) {
         try {
             const stats = await fetchWithAuth(`/api/statistics/from/${userId}`);
@@ -617,16 +727,85 @@
             const uid = parseInt(currentSelectedUserId);
             statsList = await fetchStatisticsForUser(uid);
         }
+        renderStatSelect(statsList);
         updateDashboard(statsList, currentSelectedUserId);
+    }
+
+    function showStatDetail(stat) {
+        if (!stat) {
+            document.getElementById('statDetailPanel').classList.remove('active');
+            document.getElementById('statDetailTitle').textContent = '— Select a statistic from the table —';
+            return;
+        }
+
+        document.getElementById('statDetailPanel').classList.add('active');
+        document.getElementById('statDetailTitle').textContent = `ID: ${stat.id} | Date: ${stat.date ? new Date(stat.date).toLocaleString() : 'N/A'}`;
+
+        const detailContent = document.getElementById('statDetailContent');
+        const heatmapDiv = document.getElementById('heatmapPreview');
+        const clicksDiv = document.getElementById('clicksTimeline');
+
+        detailContent.innerHTML = `
+            <div class="metric-badge"><strong>Date:</strong> ${stat.date ? new Date(stat.date).toLocaleString() : 'N/A'}</div>
+            <div class="metric-badge"><strong>Start:</strong> ${stat.start_time ? new Date(stat.start_time).toLocaleString() : 'N/A'}</div>
+            <div class="metric-badge"><strong>End:</strong> ${stat.end_time ? new Date(stat.end_time).toLocaleString() : 'N/A'}</div>
+            <div class="metric-badge"><strong>Active:</strong> ${formatNumber(stat.active_time || 0)} ms</div>
+            <div class="metric-badge"><strong>Idle:</strong> ${formatNumber(stat.idle_time || 0)} ms</div>
+            <div class="metric-badge"><strong>Mouse Mov:</strong> ${formatNumber(stat.mouse_movement || 0)} px</div>
+            <div class="metric-badge"><strong>Mouse Clicks:</strong> ${stat.mouse_clicks || 0}</div>
+            <div class="metric-badge"><strong>Keyboard:</strong> ${stat.keyboard_clicks || 0}</div>
+            <div class="metric-badge"><strong>K/M Ratio:</strong> ${stat.keyboard_to_mouse_coef || 'N/A'}</div>
+            <div class="metric-badge"><strong>CPU:</strong> ${stat.average_cpu ? stat.average_cpu.toFixed(2) + '%' : 'N/A'}</div>
+            <div class="metric-badge"><strong>GPU:</strong> ${stat.average_gpu ? stat.average_gpu.toFixed(2) + '%' : 'N/A'}</div>
+            <div class="metric-badge"><strong>RAM:</strong> ${stat.average_ram ? stat.average_ram.toFixed(2) + ' GB' : 'N/A'}</div>
+            <div class="metric-badge"><strong>Login:</strong> ${stat.login_time || 0} ms</div>
+            <div class="metric-badge"><strong>Logout:</strong> ${stat.logout_time || 0} ms</div>
+            <div class="metric-badge"><strong>Breaks:</strong> ${stat.number_of_breaks || 0}</div>
+            <div class="metric-badge" style="grid-column: span 2;"><strong>AI Eval:</strong> ${stat.ai_eval || 'no evaluation'}</div>
+            <div class="metric-badge"><strong>Heat Map W:</strong> ${stat.heat_map_width || 0}px</div>
+        `;
+
+        // Heat map preview
+        if (stat.heat_map && stat.heat_map.length > 0) {
+            heatmapDiv.textContent = stat.heat_map.substring(0, 500) + (stat.heat_map.length > 500 ? '...' : '');
+            heatmapDiv.style.display = 'block';
+        } else {
+            heatmapDiv.textContent = 'No heat map data';
+            heatmapDiv.style.display = 'block';
+        }
+
+        // Clicks over time
+        if (stat.clicks_over_time && stat.clicks_over_time.length > 0) {
+            clicksDiv.textContent = stat.clicks_over_time.substring(0, 300) + (stat.clicks_over_time.length > 300 ? '...' : '');
+        } else {
+            clicksDiv.textContent = 'No click timeline data';
+        }
     }
 
     function updateDashboard(statsArray, userIdOrAll) {
         if (!statsArray || statsArray.length === 0) {
             renderEmptyState();
             if (statsArray && statsArray.length === 0 && userIdOrAll !== 'all') {
-                document.getElementById('statsTableBody').innerHTML = `<tr><td colspan="14">No statistics found for this user. Try clicking "Collect (force)" to generate statistics from actions.</td></tr>`;
+                document.getElementById('statsTableBody').innerHTML = `<tr><td colspan="17">No statistics found for this user. Try clicking "Collect (force)" to generate statistics from actions.</td></tr>`;
             }
+            document.getElementById('statDetailPanel').classList.remove('active');
             return;
+        }
+
+        // Filter by selected stat if not 'all'
+        let displayStats = statsArray;
+        if (currentSelectedStatId !== 'all') {
+            const selectedStat = statsArray.find(s => s.id == currentSelectedStatId);
+            if (selectedStat) {
+                displayStats = [selectedStat];
+                showStatDetail(selectedStat);
+            } else {
+                currentSelectedStatId = 'all';
+                document.getElementById('statSelect').value = 'all';
+                document.getElementById('statDetailPanel').classList.remove('active');
+            }
+        } else {
+            document.getElementById('statDetailPanel').classList.remove('active');
         }
 
         let totalActive = 0, totalMouseMove = 0, totalKeyboard = 0;
@@ -634,12 +813,12 @@
         let validCpuCount = 0, validRamCount = 0, validGpuCount = 0;
         let aiEvalSample = "—";
 
-        const nonEmptyAi = statsArray.find(s => s.ai_eval && s.ai_eval !== "no evaluation");
+        const nonEmptyAi = displayStats.find(s => s.ai_eval && s.ai_eval !== "no evaluation");
         if (nonEmptyAi) aiEvalSample = nonEmptyAi.ai_eval.substring(0, 60);
 
         let appMap = new Map();
 
-        statsArray.forEach(stat => {
+        displayStats.forEach(stat => {
             totalActive += (stat.active_time || 0);
             totalMouseMove += (stat.mouse_movement || 0);
             totalKeyboard += (stat.keyboard_clicks || 0);
@@ -662,7 +841,7 @@
             }
         });
 
-        const avgActive = statsArray.length ? Math.round(totalActive / statsArray.length) : 0;
+        const avgActive = displayStats.length ? Math.round(totalActive / displayStats.length) : 0;
         const avgCpuVal = validCpuCount ? (sumCpu/validCpuCount).toFixed(2) : "—";
         const avgRamVal = validRamCount ? (sumRam/validRamCount).toFixed(2) : "—";
         const avgGpuVal = validGpuCount ? (sumGpu/validGpuCount).toFixed(2) : "—";
@@ -670,6 +849,7 @@
         document.getElementById('avgActiveTime').innerText = formatNumber(avgActive);
         document.getElementById('totalMouseMovement').innerText = formatNumber(totalMouseMove);
         document.getElementById('totalKeyboard').innerText = formatNumber(totalKeyboard);
+        document.getElementById('totalMouseClicks').innerText = formatNumber(totalMouseClicks);
         document.getElementById('avgCpu').innerHTML = avgCpuVal !== "—" ? `${avgCpuVal} %` : "—";
         document.getElementById('avgRam').innerHTML = avgRamVal !== "—" ? `${avgRamVal} GB` : "—";
         document.getElementById('avgGpu').innerHTML = avgGpuVal !== "—" ? `${avgGpuVal} %` : "—";
@@ -685,18 +865,19 @@
         else appHtml += '</ul>';
         document.getElementById('appUsageContainer').innerHTML = appHtml;
 
-        renderStatsTable(statsArray);
-        prepareTimelineChart(statsArray);
+        renderStatsTable(displayStats);
+        prepareTimelineChart(displayStats);
     }
 
     function renderStatsTable(statsArray) {
         const tbody = document.getElementById('statsTableBody');
         if (!statsArray.length) {
-            tbody.innerHTML = '<tr><td colspan="14">No statistics records found. Try collecting stats.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="17">No statistics records found. Try collecting stats.</td></tr>';
             return;
         }
         let rows = '';
         statsArray.slice().sort((a,b) => new Date(b.start_time) - new Date(a.start_time)).forEach(stat => {
+            const date = stat.date ? new Date(stat.date).toLocaleDateString() : 'N/A';
             const start = stat.start_time ? new Date(stat.start_time).toLocaleString() : 'N/A';
             const end = stat.end_time ? new Date(stat.end_time).toLocaleString() : 'N/A';
             const active = stat.active_time ?? 0;
@@ -707,12 +888,18 @@
             const kToMouse = stat.keyboard_to_mouse_coef ?? '-';
             const cpu = stat.average_cpu ? stat.average_cpu.toFixed(2) : '-';
             const ram = stat.average_ram ? stat.average_ram.toFixed(2) : '-';
+            const gpu = stat.average_gpu ? stat.average_gpu.toFixed(2) : '-';
             const aiEvalShort = (stat.ai_eval && stat.ai_eval !== "no evaluation") ? (stat.ai_eval.length > 35 ? stat.ai_eval.substring(0,32)+".." : stat.ai_eval) : 'no eval';
             const breaks = stat.number_of_breaks ?? 0;
             const login = stat.login_time ?? 0;
             const logout = stat.logout_time ?? 0;
-            rows += `<tr>
+
+            const isSelected = currentSelectedStatId == stat.id;
+            const rowStyle = isSelected ? 'background: #dbeafe;' : '';
+
+            rows += `<tr style="${rowStyle} cursor: pointer;" onclick="selectStatFromTable(${stat.id})" title="Click to view details">
                         <td>${stat.id}</td>
+                        <td>${date}</td>
                         <td>${start}</td>
                         <td>${end}</td>
                         <td>${formatNumber(active)}</td>
@@ -723,20 +910,53 @@
                         <td>${kToMouse}</td>
                         <td>${cpu}</td>
                         <td>${ram}</td>
+                        <td>${gpu}</td>
                         <td title="${stat.ai_eval || ''}">${aiEvalShort}</td>
                         <td>${breaks}</td>
-                        <td>login:${login}<br>logout:${logout}</td>
+                        <td>L:${login}<br>O:${logout}</td>
+                        <td><button class="outline" style="padding: 4px 8px; font-size: 0.7rem;" onclick="event.stopPropagation(); selectStatFromTable(${stat.id})"><i class="fas fa-eye"></i></button></td>
                       </tr>`;
         });
         tbody.innerHTML = rows;
     }
 
+    function selectStatFromTable(statId) {
+        currentSelectedStatId = statId;
+        document.getElementById('statSelect').value = statId;
+
+        // Get the full stats array from the map
+        let allStats = [];
+        if (currentSelectedUserId === 'all') {
+            allStats = currentStatisticsMap.get('all') || [];
+        } else {
+            const uid = parseInt(currentSelectedUserId);
+            allStats = currentStatisticsMap.get(uid) || [];
+        }
+
+        const selectedStat = allStats.find(s => s.id == statId);
+        if (selectedStat) {
+            showStatDetail(selectedStat);
+
+            // Update dashboard with just this stat
+            updateDashboard(allStats, currentSelectedUserId);
+
+            // Scroll to detail panel
+            document.getElementById('statDetailCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
     function prepareTimelineChart(statsArray) {
         const ctx = document.getElementById('statsTimelineChart').getContext('2d');
         const sorted = [...statsArray].sort((a,b) => new Date(a.start_time) - new Date(b.start_time));
-        const labels = sorted.map((s, idx) => `Session ${idx+1}\n${s.start_time ? new Date(s.start_time).toLocaleDateString() : '?'}`);
+        const labels = sorted.map((s, idx) => {
+            const dateStr = s.date ? new Date(s.date).toLocaleDateString() :
+                           (s.start_time ? new Date(s.start_time).toLocaleDateString() : '?');
+            return `S${idx+1} ${dateStr}`;
+        });
         const activeData = sorted.map(s => (s.active_time || 0) / 1000);
         const mouseData = sorted.map(s => (s.mouse_movement || 0) / 100);
+        const keyboardData = sorted.map(s => (s.keyboard_clicks || 0));
+
         if (timelineChart) timelineChart.destroy();
         timelineChart = new Chart(ctx, {
             type: 'bar',
@@ -744,13 +964,40 @@
                 labels: labels,
                 datasets: [
                     { label: 'Active time (seconds)', data: activeData, backgroundColor: '#3b82f6', borderRadius: 8, yAxisID: 'y' },
-                    { label: 'Mouse movement (x100 px)', data: mouseData, backgroundColor: '#f97316', borderRadius: 8, yAxisID: 'y' }
+                    { label: 'Mouse movement (x100 px)', data: mouseData, backgroundColor: '#f97316', borderRadius: 8, yAxisID: 'y' },
+                    { label: 'Keyboard clicks', data: keyboardData, backgroundColor: '#10b981', borderRadius: 8, yAxisID: 'y1' }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
-                plugins: { legend: { position: 'top' }, tooltip: { mode: 'index' } }
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: { mode: 'index' }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Time / Movement'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: {
+                            drawOnChartArea: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Keyboard clicks'
+                        }
+                    }
+                }
             }
         });
     }
@@ -759,12 +1006,15 @@
         document.getElementById('avgActiveTime').innerText = '—';
         document.getElementById('totalMouseMovement').innerText = '—';
         document.getElementById('totalKeyboard').innerText = '—';
+        document.getElementById('totalMouseClicks').innerText = '—';
         document.getElementById('avgCpu').innerHTML = '—';
         document.getElementById('avgRam').innerHTML = '—';
         document.getElementById('avgGpu').innerHTML = '—';
         document.getElementById('totalIdle').innerText = '—';
         document.getElementById('aiEvalSample').innerText = 'No data';
         document.getElementById('appUsageContainer').innerHTML = '<div class="metric-label">No app usage stats yet</div>';
+        document.getElementById('statDetailPanel').classList.remove('active');
+
         if (timelineChart) timelineChart.destroy();
         timelineChart = null;
         const ctx = document.getElementById('statsTimelineChart').getContext('2d');
@@ -802,7 +1052,24 @@
 
     document.getElementById('userSelect').addEventListener('change', async (e) => {
         currentSelectedUserId = e.target.value;
+        currentSelectedStatId = 'all';
+        document.getElementById('statSelect').value = 'all';
         if (authToken) await refreshCurrentView();
+    });
+
+    document.getElementById('statSelect').addEventListener('change', async (e) => {
+        currentSelectedStatId = e.target.value;
+        if (authToken) {
+            // Get the full stats array
+            let allStats = [];
+            if (currentSelectedUserId === 'all') {
+                allStats = currentStatisticsMap.get('all') || [];
+            } else {
+                const uid = parseInt(currentSelectedUserId);
+                allStats = currentStatisticsMap.get(uid) || [];
+            }
+            updateDashboard(allStats, currentSelectedUserId);
+        }
     });
 
     document.getElementById('logoutBtnInStats').addEventListener('click', logout);
