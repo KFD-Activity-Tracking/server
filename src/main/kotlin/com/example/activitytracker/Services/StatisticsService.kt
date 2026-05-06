@@ -55,7 +55,9 @@ class StatisticsServiceImpl (
 
         statistic.start_time = sorted.firstOrNull()?.performedAt ?: LocalDateTime.now(ZoneOffset.UTC)
         statistic.end_time = sorted.lastOrNull()?.performedAt ?: LocalDateTime.now(ZoneOffset.UTC)
-        val all_time_seconds : Long = statistic.end_time.toEpochSecond(ZoneOffset.UTC)-statistic.start_time.toEpochSecond(ZoneOffset.UTC)
+        val all_time_seconds : Long = (statistic.end_time.toEpochSecond(ZoneOffset.UTC)-
+                statistic.start_time.toEpochSecond(ZoneOffset.UTC)).coerceAtLeast(1)
+
 
         val app_actions = actions.filter { it is AppAction }.map { it as AppAction }.groupBy { it.app_name }
         val mouse_actions = actions.filter { it is MouseAction }.map { it as MouseAction }
@@ -92,7 +94,7 @@ class StatisticsServiceImpl (
         }
         statistic.heat_map_width = heatMapWidth
         val maxHeat = heat_map.maxOrNull()?.takeIf { it > 0 } ?: 1
-        statistic.heat_map = String(CharArray(heat_map.size) { (heat_map[it] * 255 / maxHeat).coerceIn(0, 255).toChar() })
+        statistic.heat_map = String(CharArray(heat_map.size) { (heat_map[it] * 255 / maxHeat).coerceIn(1, 255).toChar() })
 
 
 
@@ -101,11 +103,11 @@ class StatisticsServiceImpl (
         mouse_actions.filter { it.is_click }.forEach {
             val passed = it.performedAt.toEpochSecond(ZoneOffset.UTC) -
                             statistic.start_time.toEpochSecond(ZoneOffset.UTC)
-            val relative = time_stamps*(1.0*passed/all_time_seconds).toInt().coerceIn(0,time_stamps-1)
+            val relative = (time_stamps*(1.0*passed/all_time_seconds)).toInt().coerceIn(0,time_stamps-1)
             clicks_per_stamp[relative.toInt()]+=1
         }
 
-        statistic.clicks_over_time = String(CharArray(time_stamps, {min(255,clicks_per_stamp[it]).toChar()}))
+        statistic.clicks_over_time = String(CharArray(time_stamps, {clicks_per_stamp[it].coerceIn(1,255).toChar()}))
 
 
 
@@ -120,15 +122,21 @@ class StatisticsServiceImpl (
 
 
         var activeTimeMillis = 0L
-        val activeWaitMillis = 1*60*1000.toLong()
+        var numberOfBreaks = 0
+        val activeWaitMillis = 1*60*1000.toLong()   // how long it takes for user to be considered inactive
+        val breakTimeMillis = 10*60*1000.toLong()   // how long it takes for inactivity to be considered a break
         for (i in 0..(actions.size-2)) {
             val deltaMillis = actions[i+1].performedAt.toInstant(ZoneOffset.UTC).toEpochMilli() -
                                 actions[i].performedAt.toInstant(ZoneOffset.UTC).toEpochMilli()
+            if (deltaMillis>breakTimeMillis) {
+                numberOfBreaks++
+            }
             activeTimeMillis += min(deltaMillis, activeWaitMillis)
         }
 
 
         statistic.active_time = activeTimeMillis/1000
+        statistic.number_of_breaks = numberOfBreaks
 
         statistic.idle_time = all_time_seconds - statistic.active_time
 
@@ -173,7 +181,6 @@ class StatisticsServiceImpl (
 
 
 
-        appStatisticService.saveAll(statistic.app_statistics)
 
         actionService.removeAllById(actions.map { it.id })
         statisticsDao.save(statistic)

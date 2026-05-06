@@ -1,5 +1,6 @@
 package com.example.activitytracker
 
+import com.fasterxml.jackson.annotation.JsonBackReference
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
@@ -17,6 +18,7 @@ class AppStatistics (){
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id : Long = 0
 
+    @JsonBackReference
     @ManyToOne
     @JoinColumn(name = "statistics_id")
     var statistics_id : Statistics? = null

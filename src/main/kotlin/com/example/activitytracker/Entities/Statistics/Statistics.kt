@@ -1,5 +1,7 @@
 package com.example.activitytracker
 
+import com.fasterxml.jackson.annotation.JsonManagedReference
+import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
@@ -47,7 +49,9 @@ class BasicStatistics (
 class Statistics : BasicStatistics() {
 
 
-    @OneToMany
+
+    @JsonManagedReference
+    @OneToMany(mappedBy = "statistics_id", cascade = [(CascadeType.ALL)], orphanRemoval = true)
     var app_statistics : MutableList<AppStatistics> = mutableListOf()
 
 

@@ -11,14 +11,15 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpMethod
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
 import org.springframework.web.client.RestClientException
+import java.net.ConnectException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.*
+import org.springframework.http.HttpMethod
 
 @Service
 class ActionAnalysisService(
@@ -41,7 +42,10 @@ class ActionAnalysisService(
     private var fallbackWhenNoModel: Boolean = true
 
     private val modelsReady = AtomicBoolean(false)
+    private val serviceAvailable = AtomicBoolean(false)
     private val analysisCache = ConcurrentHashMap<String, CachedAnalysis>()
+    private var pullAttempts = 0
+    private val maxPullAttempts = 5
 
     data class CachedAnalysis(
         val result: AnalysisResult,
@@ -80,66 +84,62 @@ class ActionAnalysisService(
         }
 
         scope.launch {
-            delay(3000)
-            checkAndPullModel()
+            delay(5000)
+            checkServiceAndModel()
         }
     }
 
-    private suspend fun checkAndPullModel() {
+    private suspend fun checkServiceAndModel() {
         if (modelsReady.get()) return
 
-        try {
-            logger.info("Checking for TinyLlama model...")
+        if (!isServiceReachable()) {
+            logger.warn("Ollama service not reachable at $ollamaUrl")
+            return
+        }
 
-            if (isModelAvailable()) {
-                logger.info("Model already available: $modelName")
-                modelsReady.set(true)
-                warmUpModel()
-                return
-            }
+        serviceAvailable.set(true)
 
-            logger.info("Model not found. Starting pull...")
-            startPull()
+        if (isModelAvailable()) {
+            logger.info("Model already available: $modelName")
+            modelsReady.set(true)
+            warmUpModel()
+            return
+        }
 
-            var attempts = 0
-            val maxAttempts = 90
+        if (pullAttempts >= maxPullAttempts) {
+            logger.warn("Max pull attempts ($maxPullAttempts) reached. Skipping model pull.")
+            return
+        }
 
-            while (attempts < maxAttempts && !modelsReady.get()) {
-                delay(2000)
-                attempts++
+        pullAttempts++
+        logger.info("Attempt $pullAttempts/$maxPullAttempts to pull model $modelName")
+        startPull()
+    }
 
-                if (isModelAvailable()) {
-                    logger.info("Model ready after ${attempts * 2} seconds")
-                    modelsReady.set(true)
-                    warmUpModel()
-                    return
-                }
-
-                if (attempts % 5 == 0) {
-                    logger.info("Waiting for model download... (${attempts * 2}s elapsed)")
-                }
-            }
-
-            if (!modelsReady.get()) {
-                logger.error("Model not available after ${maxAttempts * 2} seconds")
-                if (fallbackWhenNoModel) {
-                    logger.warn("Running in fallback mode - rule-based analysis only")
-                }
-            }
-
+    private fun isServiceReachable(): Boolean {
+        return try {
+            val url = "$ollamaUrl/api/tags"
+            restTemplate.getForObject(url, Map::class.java)
+            true
+        } catch (e: ConnectException) {
+            logger.debug("Ollama service not reachable: ${e.message}")
+            false
         } catch (e: Exception) {
-            logger.error("Error during model initialization: ${e.message}", e)
+            logger.debug("Service check failed: ${e.message}")
+            false
         }
     }
 
     private fun isModelAvailable(): Boolean {
+        if (!serviceAvailable.get()) return false
+
         return try {
             val url = "$ollamaUrl/api/tags"
             val response = restTemplate.getForObject(url, Map::class.java)
             val models = response?.get("models") as? List<*> ?: emptyList<Any?>()
             models.any { model ->
                 val name = (model as? Map<*, *>)?.get("name")?.toString() ?: ""
-                name.contains("tinyllama", ignoreCase = true)
+                name.contains(modelName.split(":")[0], ignoreCase = true)
             }
         } catch (e: Exception) {
             false
@@ -148,38 +148,59 @@ class ActionAnalysisService(
 
     private fun startPull() {
         try {
-            logger.info("Starting pull for model: $modelName")
             val url = java.net.URI("$ollamaUrl/api/pull")
-
             val request = mapOf("name" to modelName, "stream" to false)
             val headers = HttpHeaders().apply {
                 contentType = MediaType.APPLICATION_JSON
             }
             val requestBody = objectMapper.writeValueAsString(request)
 
-            try {
-                restTemplate.execute(url, HttpMethod.POST,
-                    { requestCallback ->
-                        requestCallback.headers.putAll(headers)
-                        requestCallback.body.write(requestBody.toByteArray())
-                    },
-                    { responseCallback ->
-                        responseCallback.body?.bufferedReader()?.readText()
-                        null
-                    }
-                )
-                logger.info("Pull request initiated successfully")
-            } catch (e: Exception) {
-                logger.info("Pull started (background download in progress)")
+            restTemplate.execute(url, HttpMethod.POST,
+                { requestCallback ->
+                    requestCallback.headers.putAll(headers)
+                    requestCallback.body.write(requestBody.toByteArray())
+                },
+                { responseCallback ->
+                    responseCallback.body?.bufferedReader()?.readText()
+                    null
+                }
+            )
+
+            scope.launch {
+                waitForModelWithRetry()
             }
         } catch (e: Exception) {
-            logger.error("Failed to start pull: ${e.message}", e)
+            logger.error("Failed to start pull: ${e.message}")
+        }
+    }
+
+    private suspend fun waitForModelWithRetry() {
+        var waitTime = 0
+        val maxWaitSeconds = 180
+
+        while (waitTime < maxWaitSeconds && !modelsReady.get()) {
+            delay(5000)
+            waitTime += 5
+
+            if (isModelAvailable()) {
+                logger.info("Model ready after ${waitTime} seconds")
+                modelsReady.set(true)
+                warmUpModel()
+                return
+            }
+
+            if (waitTime % 30 == 0) {
+                logger.info("Waiting for model download... (${waitTime}s elapsed)")
+            }
+        }
+
+        if (!modelsReady.get()) {
+            logger.warn("Model download incomplete after ${maxWaitSeconds}s")
         }
     }
 
     private suspend fun warmUpModel() {
         try {
-            logger.info("Warming up TinyLlama model...")
             withTimeout(5000) {
                 val warmupPrompt = "Respond with OK"
                 val request = OllamaGenerateRequest(
@@ -191,7 +212,7 @@ class ActionAnalysisService(
                 }
                 val entity = HttpEntity(objectMapper.writeValueAsString(request), headers)
                 restTemplate.postForObject("$ollamaUrl/api/generate", entity, Map::class.java)
-                logger.info("TinyLlama model warmed up and ready")
+                logger.info("Model warmed up and ready")
             }
         } catch (e: Exception) {
             logger.warn("Model warmup failed: ${e.message}")
@@ -221,12 +242,10 @@ class ActionAnalysisService(
                     llmBasedAnalysis(actions, userId)
                 }
             } catch (e: TimeoutCancellationException) {
-                logger.warn("Analysis timed out, using fallback")
                 ruleBasedAnalysis(actions, userId).copy(
                     analysis = "Analysis timeout, using rule-based fallback"
                 )
             } catch (e: Exception) {
-                logger.error("Analysis failed: ${e.message}", e)
                 ruleBasedAnalysis(actions, userId).copy(
                     analysis = "Analysis failed: ${e.message}, using fallback"
                 )
@@ -270,7 +289,6 @@ class ActionAnalysisService(
             val responseText = response?.get("response") as? String ?: ""
             parseAnalysisResponse(responseText, actions, userId)
         } catch (e: RestClientException) {
-            logger.error("Ollama API call failed: ${e.message}", e)
             throw e
         }
     }
@@ -293,7 +311,7 @@ class ActionAnalysisService(
         return """
 You are a fraud detection system. Analyze user behavior and return ONLY valid JSON.
 
-User $userId behavior summary:
+User $userId behavior:
 - Total actions: ${actions.size}
 - Mouse clicks: ${metrics.clicks}
 - Mouse movements: ${metrics.moves}
@@ -305,14 +323,7 @@ User $userId behavior summary:
 Recent actions:
 $recentActions
 
-Suspicious patterns to check:
-1. Too many clicks without mouse movement (bot-like)
-2. No keyboard activity but many clicks (automated bot)
-3. Extremely rapid actions (more than 5 clicks per second)
-4. Excessive app switching (more than 20 switches)
-5. Unusual patterns in recent actions
-
-Return ONLY valid JSON with this structure:
+Return ONLY valid JSON:
 {
     "is_anomalous": true/false,
     "confidence": 0.0-1.0,
@@ -355,7 +366,6 @@ Return ONLY valid JSON with this structure:
                 }
             )
         } catch (e: Exception) {
-            logger.error("Failed to parse response: ${e.message}\nResponse: $responseText")
             val fallback = ruleBasedAnalysis(actions, userId)
             fallback.copy(analysis = "AI response parsing failed: ${e.message}")
         }

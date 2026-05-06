@@ -282,34 +282,69 @@
             border-radius: 20px;
             padding: 16px;
             margin-top: 12px;
-            display: none;
         }
 
-        .stat-detail-panel.active {
-            display: block;
-        }
-
-        .heatmap-preview {
-            font-family: monospace;
-            font-size: 8px;
-            line-height: 1;
+        .heatmap-container {
             background: #1e293b;
-            color: #e2e8f0;
-            padding: 8px;
             border-radius: 12px;
-            overflow-x: auto;
-            white-space: pre;
-            max-height: 200px;
+            padding: 16px;
+            margin-top: 12px;
+        }
+
+        .heatmap-grid {
+            display: grid;
+            gap: 1px;
+            background: #334155;
+            padding: 1px;
+            border-radius: 4px;
+            overflow: auto;
+            max-height: 400px;
+        }
+
+        .heatmap-cell {
+            aspect-ratio: 1;
+            min-width: 4px;
+            min-height: 4px;
+            transition: all 0.2s;
+        }
+
+        .heatmap-cell:hover {
+            transform: scale(1.5);
+            z-index: 10;
+            box-shadow: 0 0 8px rgba(255,255,255,0.5);
         }
 
         .clicks-timeline {
-            max-height: 100px;
+            max-height: 200px;
             overflow-y: auto;
             font-family: monospace;
             font-size: 0.75rem;
             background: #f1f5f9;
             padding: 8px;
             border-radius: 8px;
+        }
+
+        .clicks-bar-chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            height: 100px;
+            padding: 8px;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+
+        .clicks-bar {
+            flex: 1;
+            background: linear-gradient(to top, #3b82f6, #60a5fa);
+            border-radius: 2px 2px 0 0;
+            min-width: 2px;
+            transition: all 0.2s;
+        }
+
+        .clicks-bar:hover {
+            background: linear-gradient(to top, #2563eb, #3b82f6);
+            transform: scaleY(1.1);
         }
 
         .stat-row {
@@ -319,9 +354,39 @@
             margin: 8px 0;
         }
 
+        .app-stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: white;
+            border-radius: 8px;
+            margin: 4px 0;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .app-stat-name {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .app-stat-time {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .app-stat-exits {
+            background: #e2e8f0;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: #475569;
+        }
+
         @media (max-width: 700px) {
             body { padding: 16px; }
             .header { flex-direction: column; align-items: stretch; }
+            .heatmap-cell { min-width: 3px; min-height: 3px; }
         }
     </style>
 </head>
@@ -394,17 +459,32 @@
             Statistic Detail View
             <span style="font-size: 0.8rem; color: #64748b; margin-left: 12px;" id="statDetailTitle">— Select a statistic from the table —</span>
         </div>
-        <div class="stat-detail-panel" id="statDetailPanel">
+        <div class="stat-detail-panel" id="statDetailPanel" style="display: none;">
             <div class="stat-row" id="statDetailContent">
                 <div>Select a statistic row to view details</div>
             </div>
-            <div style="margin-top: 16px;">
-                <strong>Heat Map Preview:</strong>
-                <div class="heatmap-preview" id="heatmapPreview">No heat map data</div>
+
+            <!-- App Statistics Detail -->
+            <div style="margin-top: 24px;" id="appStatsDetailSection">
+                <strong><i class="fas fa-window-maximize"></i> Application Usage Details:</strong>
+                <div id="appStatsDetail"></div>
             </div>
-            <div style="margin-top: 12px;">
-                <strong>Clicks Over Time:</strong>
-                <div class="clicks-timeline" id="clicksTimeline">No click timeline data</div>
+
+            <!-- Heat Map Visualization -->
+            <div style="margin-top: 24px;">
+                <strong><i class="fas fa-fire"></i> Mouse Activity Heat Map:</strong>
+                <div class="heatmap-container">
+                    <div id="heatmapInfo" style="color: #e2e8f0; margin-bottom: 12px; font-size: 0.85rem;"></div>
+                    <div class="heatmap-grid" id="heatmapGrid"></div>
+                </div>
+            </div>
+
+            <!-- Clicks Timeline Visualization -->
+            <div style="margin-top: 24px;">
+                <strong><i class="fas fa-timeline"></i> Clicks Distribution Over Time:</strong>
+                <div id="clicksTimelineInfo" style="color: #64748b; margin-bottom: 8px; font-size: 0.85rem;"></div>
+                <div class="clicks-bar-chart" id="clicksBarChart"></div>
+                <div class="clicks-timeline" id="clicksTimeline" style="margin-top: 8px;"></div>
             </div>
         </div>
     </div>
@@ -731,19 +811,137 @@
         updateDashboard(statsList, currentSelectedUserId);
     }
 
+    function renderHeatMap(heatMapString, width) {
+        const grid = document.getElementById('heatmapGrid');
+        const info = document.getElementById('heatmapInfo');
+
+        if (!heatMapString || heatMapString.length === 0 || !width || width === 0) {
+            grid.innerHTML = '<div style="color: #94a3b8; padding: 20px; text-align: center;">No heat map data available</div>';
+            info.textContent = 'No heat map data';
+            return;
+        }
+
+        const height = Math.floor(heatMapString.length / width);
+        info.textContent = `Resolution: ${width}x${height} pixels | Each cell represents mouse click density`;
+
+        grid.style.gridTemplateColumns = `repeat(${width}, 1fr)`;
+        grid.innerHTML = '';
+
+        for (let i = 0; i < heatMapString.length; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'heatmap-cell';
+
+            // Each character represents density (0-255)
+            const density = heatMapString.charCodeAt(i);
+            const intensity = density / 255;
+
+            // Color scale: blue (cold) -> green -> yellow -> red (hot)
+            let r, g, b;
+            if (intensity < 0.33) {
+                // Blue to green
+                r = 0;
+                g = Math.floor(intensity * 3 * 255);
+                b = Math.floor((1 - intensity * 3) * 255);
+            } else if (intensity < 0.66) {
+                // Green to yellow
+                r = Math.floor((intensity - 0.33) * 3 * 255);
+                g = 255;
+                b = 0;
+            } else {
+                // Yellow to red
+                r = 255;
+                g = Math.floor((1 - (intensity - 0.66) * 3) * 255);
+                b = 0;
+            }
+
+            cell.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+            cell.title = `Position: row=${Math.floor(i/width)+1}, col=${i%width+1}\nDensity: ${density}/255`;
+
+            grid.appendChild(cell);
+        }
+    }
+
+    function renderClicksTimeline(clicksOverTimeString) {
+        const barChart = document.getElementById('clicksBarChart');
+        const timeline = document.getElementById('clicksTimeline');
+        const info = document.getElementById('clicksTimelineInfo');
+
+        if (!clicksOverTimeString || clicksOverTimeString.length === 0) {
+            barChart.innerHTML = '<div style="color: #94a3b8; padding: 10px;">No click data available</div>';
+            timeline.textContent = 'No click timeline data';
+            info.textContent = 'No data';
+            return;
+        }
+
+        info.textContent = `Data points: ${clicksOverTimeString.length} | Each value represents clicks per time period (0-255)`;
+
+        // Text representation
+        timeline.textContent = Array.from(clicksOverTimeString)
+            .map(c => c.charCodeAt(0))
+            .join(' | ');
+
+        // Bar chart visualization
+        barChart.innerHTML = '';
+        const maxValue = 255;
+
+        for (let i = 0; i < clicksOverTimeString.length; i++) {
+            const value = clicksOverTimeString.charCodeAt(i);
+            const heightPercent = (value / maxValue) * 100;
+
+            const bar = document.createElement('div');
+            bar.className = 'clicks-bar';
+            bar.style.height = `${heightPercent}%`;
+            bar.title = `Period ${i+1}: ${value} clicks`;
+
+            barChart.appendChild(bar);
+        }
+    }
+
+    function renderAppStatistics(appStatistics) {
+        const container = document.getElementById('appStatsDetail');
+
+        if (!appStatistics || !Array.isArray(appStatistics) || appStatistics.length === 0) {
+            container.innerHTML = '<div style="color: #94a3b8; padding: 10px;">No application statistics available</div>';
+            return;
+        }
+
+        let html = '';
+        appStatistics
+            .sort((a, b) => (b.time_spent || 0) - (a.time_spent || 0))
+            .forEach(app => {
+                const name = app.app_name || 'Unknown App';
+                const timeSpent = app.time_spent || 0;
+                const exits = app.number_of_exits || 0;
+
+                html += `
+                    <div class="app-stat-item">
+                        <span class="app-stat-name">
+                            <i class="fas fa-window-maximize"></i> ${name}
+                        </span>
+                        <span class="app-stat-time">
+                            ${formatNumber(timeSpent)} ms
+                            <span class="app-stat-exits">${exits} exits</span>
+                        </span>
+                    </div>
+                `;
+            });
+
+        container.innerHTML = html;
+    }
+
     function showStatDetail(stat) {
+        const panel = document.getElementById('statDetailPanel');
+
         if (!stat) {
-            document.getElementById('statDetailPanel').classList.remove('active');
+            panel.style.display = 'none';
             document.getElementById('statDetailTitle').textContent = '— Select a statistic from the table —';
             return;
         }
 
-        document.getElementById('statDetailPanel').classList.add('active');
+        panel.style.display = 'block';
         document.getElementById('statDetailTitle').textContent = `ID: ${stat.id} | Date: ${stat.date ? new Date(stat.date).toLocaleString() : 'N/A'}`;
 
         const detailContent = document.getElementById('statDetailContent');
-        const heatmapDiv = document.getElementById('heatmapPreview');
-        const clicksDiv = document.getElementById('clicksTimeline');
 
         detailContent.innerHTML = `
             <div class="metric-badge"><strong>Date:</strong> ${stat.date ? new Date(stat.date).toLocaleString() : 'N/A'}</div>
@@ -762,24 +960,17 @@
             <div class="metric-badge"><strong>Logout:</strong> ${stat.logout_time || 0} ms</div>
             <div class="metric-badge"><strong>Breaks:</strong> ${stat.number_of_breaks || 0}</div>
             <div class="metric-badge" style="grid-column: span 2;"><strong>AI Eval:</strong> ${stat.ai_eval || 'no evaluation'}</div>
-            <div class="metric-badge"><strong>Heat Map W:</strong> ${stat.heat_map_width || 0}px</div>
+            <div class="metric-badge"><strong>Heat Map Size:</strong> ${stat.heat_map_width || 0}x${stat.heat_map ? Math.floor(stat.heat_map.length / (stat.heat_map_width || 1)) : 0}px</div>
         `;
 
-        // Heat map preview
-        if (stat.heat_map && stat.heat_map.length > 0) {
-            heatmapDiv.textContent = stat.heat_map.substring(0, 500) + (stat.heat_map.length > 500 ? '...' : '');
-            heatmapDiv.style.display = 'block';
-        } else {
-            heatmapDiv.textContent = 'No heat map data';
-            heatmapDiv.style.display = 'block';
-        }
+        // Render app statistics
+        renderAppStatistics(stat.app_statistics);
 
-        // Clicks over time
-        if (stat.clicks_over_time && stat.clicks_over_time.length > 0) {
-            clicksDiv.textContent = stat.clicks_over_time.substring(0, 300) + (stat.clicks_over_time.length > 300 ? '...' : '');
-        } else {
-            clicksDiv.textContent = 'No click timeline data';
-        }
+        // Render heat map
+        renderHeatMap(stat.heat_map, stat.heat_map_width);
+
+        // Render clicks timeline
+        renderClicksTimeline(stat.clicks_over_time);
     }
 
     function updateDashboard(statsArray, userIdOrAll) {
@@ -788,7 +979,7 @@
             if (statsArray && statsArray.length === 0 && userIdOrAll !== 'all') {
                 document.getElementById('statsTableBody').innerHTML = `<tr><td colspan="17">No statistics found for this user. Try clicking "Collect (force)" to generate statistics from actions.</td></tr>`;
             }
-            document.getElementById('statDetailPanel').classList.remove('active');
+            document.getElementById('statDetailPanel').style.display = 'none';
             return;
         }
 
@@ -802,10 +993,10 @@
             } else {
                 currentSelectedStatId = 'all';
                 document.getElementById('statSelect').value = 'all';
-                document.getElementById('statDetailPanel').classList.remove('active');
+                document.getElementById('statDetailPanel').style.display = 'none';
             }
         } else {
-            document.getElementById('statDetailPanel').classList.remove('active');
+            document.getElementById('statDetailPanel').style.display = 'none';
         }
 
         let totalActive = 0, totalMouseMove = 0, totalKeyboard = 0;
@@ -1013,12 +1204,12 @@
         document.getElementById('totalIdle').innerText = '—';
         document.getElementById('aiEvalSample').innerText = 'No data';
         document.getElementById('appUsageContainer').innerHTML = '<div class="metric-label">No app usage stats yet</div>';
-        document.getElementById('statDetailPanel').classList.remove('active');
+        document.getElementById('statDetailPanel').style.display = 'none';
 
         if (timelineChart) timelineChart.destroy();
         timelineChart = null;
         const ctx = document.getElementById('statsTimelineChart').getContext('2d');
-        ctx.clearRect(0, 0, 400, 200);
+        if (ctx) ctx.clearRect(0, 0, 400, 200);
     }
 
     function formatNumber(num) {

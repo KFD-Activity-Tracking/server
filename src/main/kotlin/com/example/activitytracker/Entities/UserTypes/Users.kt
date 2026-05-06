@@ -1,5 +1,6 @@
 package com.example.activitytracker
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.JoinColumn
@@ -33,6 +34,7 @@ class Users(
 
 
 
+    @JsonIgnore
     @ManyToMany
     @JoinTable(
         name = "admin_lookup",
