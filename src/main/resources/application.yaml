@@ -6,7 +6,7 @@ spring:
 
 
 
-  datasource1:
+  datasource:
     url: ${DB_URL}
     username: ${DB_USER}
     password: ${DB_PASSWORD}
@@ -15,7 +15,7 @@ spring:
 
 
   #In memory
-  datasource:
+  datasource1:
     url: jdbc:h2:mem:activitytracker;MODE=MySQL
     username: user
     password:
@@ -37,10 +37,15 @@ ollama:
 
 ai:
   model:
-    name: ${AI_MODEL_NAME:llama3.2:3b}
-  enabled: ${AI_ENABLED:true}
+    name: tinyllama:latest
+  enabled: true
   fallback:
     no-model: true
+  optimization:
+    max_actions: 150
+    cache_ttl_minutes: 5
+    timeout_seconds: 15
+    max_prompt_length: 2000
 
 
 

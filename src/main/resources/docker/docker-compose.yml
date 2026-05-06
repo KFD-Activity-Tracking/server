@@ -24,11 +24,17 @@ services:
 
     networks:
       - tracker_network
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   server:
     container_name: tracker_server
     environment:
-      DB_URL: jdbc:mysql://mysql:3306/activity_tracker
+      DB_URL: jdbc:mysql://mysql:3306/activity_tracker?createDatabaseIfNotExist=true
       DB_USER: user
       DB_PASSWORD: vq09t9h5c90cgh8ovy
 
@@ -40,7 +46,7 @@ services:
 
     depends_on:
       mysql:
-        condition: service_started
+        condition: service_healthy
 
     ports:
       - "8765:8765"
@@ -50,8 +56,16 @@ services:
 
 
 
+
+
+
+
+
+
+
   ollama:
     image: ollama/ollama:latest
+    profiles: ["ollama"]
     container_name: tracker_ollama
     ports:
       - "11434:11434"
@@ -60,20 +74,28 @@ services:
     environment:
       - OLLAMA_KEEP_ALIVE=24h
       - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_NUM_PARALLEL=2
     networks:
       - tracker_network
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          memory: 8G
-        reservations:
           memory: 4G
+          cpus: '2'
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:11434/api/tags" ]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 20s
+
+
+
+
+
+
+
 
 
 

@@ -74,10 +74,10 @@ class StatisticsServiceImpl (
 
 
         var mouse_moves : Double = 0.0
-        for (action in mouse_actions) {
-            val dx = action.delta_x.toDouble()
-            val dy = action.delta_y.toDouble()
-            mouse_moves += sqrt(dx*dx + dy*dy)
+        for (i in 1..<mouse_actions.size) {
+            var dx = mouse_actions[i].delta_x-mouse_actions[i-1].delta_x
+            var dy = mouse_actions[i].delta_y-mouse_actions[i-1].delta_y
+            mouse_moves += sqrt((dx*dx+dy*dy).toDouble())
         }
         mouse_moves *= 100
 

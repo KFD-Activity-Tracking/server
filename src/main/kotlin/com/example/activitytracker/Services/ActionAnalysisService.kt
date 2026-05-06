@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpMethod
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
@@ -18,7 +19,6 @@ import org.springframework.web.client.RestClientException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.*
-import kotlin.collections.emptyList
 
 @Service
 class ActionAnalysisService(
@@ -31,7 +31,7 @@ class ActionAnalysisService(
     @Value("\${ollama.url:http://ollama:11434}")
     private lateinit var ollamaUrl: String
 
-    @Value("\${ai.model.name:llama3.2:3b}")
+    @Value("\${ai.model.name:tinyllama:latest}")
     private lateinit var modelName: String
 
     @Value("\${ai.enabled:true}")
@@ -41,7 +41,6 @@ class ActionAnalysisService(
     private var fallbackWhenNoModel: Boolean = true
 
     private val modelsReady = AtomicBoolean(false)
-    private var modelPullInProgress = AtomicBoolean(false)
     private val analysisCache = ConcurrentHashMap<String, CachedAnalysis>()
 
     data class CachedAnalysis(
@@ -67,14 +66,10 @@ class ActionAnalysisService(
         val options: Map<String, Any> = mapOf(
             "temperature" to 0.3,
             "top_p" to 0.9,
-            "max_tokens" to 500
+            "num_predict" to 300,
+            "repeat_penalty" to 1.1,
+            "num_ctx" to 2048
         )
-    )
-
-    data class OllamaGenerateResponse(
-        val response: String,
-        val total_duration: Long? = null,
-        val eval_count: Int? = null
     )
 
     @PostConstruct
@@ -85,48 +80,48 @@ class ActionAnalysisService(
         }
 
         scope.launch {
-            delay(5000) // Give Ollama time to start
+            delay(3000)
             checkAndPullModel()
         }
     }
 
     private suspend fun checkAndPullModel() {
-        if (modelsReady.get() || modelPullInProgress.get()) return
-
-        modelPullInProgress.set(true)
+        if (modelsReady.get()) return
 
         try {
-            logger.info("Checking if model '$modelName' is available...")
+            logger.info("Checking for TinyLlama model...")
 
             if (isModelAvailable()) {
-                logger.info("Model '$modelName' is already available")
+                logger.info("Model already available: $modelName")
                 modelsReady.set(true)
+                warmUpModel()
                 return
             }
 
-            logger.info("Model '$modelName' not found. Pulling model (this may take several minutes on first run)...")
-            pullModel()
+            logger.info("Model not found. Starting pull...")
+            startPull()
 
-            val maxAttempts = 300   // 300 * 2 = 10 minutes
             var attempts = 0
-            var modelReady = false
-            while (attempts < maxAttempts && !modelReady) {
+            val maxAttempts = 90
+
+            while (attempts < maxAttempts && !modelsReady.get()) {
                 delay(2000)
                 attempts++
-                modelReady = isModelAvailable()
-                if (modelReady) {
-                    logger.info("Model '$modelName' is ready after ${attempts * 2} seconds!")
-                    break
+
+                if (isModelAvailable()) {
+                    logger.info("Model ready after ${attempts * 2} seconds")
+                    modelsReady.set(true)
+                    warmUpModel()
+                    return
                 }
-                if (attempts % 15 == 0) { // Log every 30 seconds
-                    logger.info("Still waiting for model '$modelName' to download... (${attempts * 2}s elapsed)")
+
+                if (attempts % 5 == 0) {
+                    logger.info("Waiting for model download... (${attempts * 2}s elapsed)")
                 }
             }
 
-            if (modelReady) {
-                modelsReady.set(true)
-            } else {
-                logger.error("Model '$modelName' did not become ready after 10 minutes")
+            if (!modelsReady.get()) {
+                logger.error("Model not available after ${maxAttempts * 2} seconds")
                 if (fallbackWhenNoModel) {
                     logger.warn("Running in fallback mode - rule-based analysis only")
                 }
@@ -134,8 +129,6 @@ class ActionAnalysisService(
 
         } catch (e: Exception) {
             logger.error("Error during model initialization: ${e.message}", e)
-        } finally {
-            modelPullInProgress.set(false)
         }
     }
 
@@ -145,29 +138,63 @@ class ActionAnalysisService(
             val response = restTemplate.getForObject(url, Map::class.java)
             val models = response?.get("models") as? List<*> ?: emptyList<Any?>()
             models.any { model ->
-                (model as? Map<*, *>)?.get("name") == modelName ||
-                        (model as? Map<*, *>)?.get("name")?.toString()?.startsWith(modelName) == true
+                val name = (model as? Map<*, *>)?.get("name")?.toString() ?: ""
+                name.contains("tinyllama", ignoreCase = true)
             }
         } catch (e: Exception) {
-            logger.debug("Failed to check model availability: ${e.message}")
             false
         }
     }
 
-    private fun pullModel() {
+    private fun startPull() {
         try {
-            val url = "$ollamaUrl/api/pull"
-            val request = mapOf("name" to modelName)
+            logger.info("Starting pull for model: $modelName")
+            val url = java.net.URI("$ollamaUrl/api/pull")
+
+            val request = mapOf("name" to modelName, "stream" to false)
             val headers = HttpHeaders().apply {
                 contentType = MediaType.APPLICATION_JSON
             }
-            val entity = HttpEntity(request, headers)
+            val requestBody = objectMapper.writeValueAsString(request)
 
-            // This is a long-running operation
-            restTemplate.postForObject(url, entity, String::class.java)
+            try {
+                restTemplate.execute(url, HttpMethod.POST,
+                    { requestCallback ->
+                        requestCallback.headers.putAll(headers)
+                        requestCallback.body.write(requestBody.toByteArray())
+                    },
+                    { responseCallback ->
+                        responseCallback.body?.bufferedReader()?.readText()
+                        null
+                    }
+                )
+                logger.info("Pull request initiated successfully")
+            } catch (e: Exception) {
+                logger.info("Pull started (background download in progress)")
+            }
         } catch (e: Exception) {
-            logger.error("Failed to pull model: ${e.message}", e)
-            throw e
+            logger.error("Failed to start pull: ${e.message}", e)
+        }
+    }
+
+    private suspend fun warmUpModel() {
+        try {
+            logger.info("Warming up TinyLlama model...")
+            withTimeout(5000) {
+                val warmupPrompt = "Respond with OK"
+                val request = OllamaGenerateRequest(
+                    model = modelName,
+                    prompt = warmupPrompt
+                )
+                val headers = HttpHeaders().apply {
+                    contentType = MediaType.APPLICATION_JSON
+                }
+                val entity = HttpEntity(objectMapper.writeValueAsString(request), headers)
+                restTemplate.postForObject("$ollamaUrl/api/generate", entity, Map::class.java)
+                logger.info("TinyLlama model warmed up and ready")
+            }
+        } catch (e: Exception) {
+            logger.warn("Model warmup failed: ${e.message}")
         }
     }
 
@@ -178,51 +205,44 @@ class ActionAnalysisService(
     ): AnalysisResult {
         val startTime = System.currentTimeMillis()
 
-        // Check cache
-        val actionHash = actions.take(100).hashCode() // Cache based on first 100 actions
+        val actionHash = actions.take(100).hashCode()
         if (!forceFresh) {
             val cached = analysisCache["$userId-$actionHash"]
-            if (cached != null && System.currentTimeMillis() - cached.timestamp < 300000) { // 5 min cache
-                logger.debug("Returning cached analysis for user $userId")
+            if (cached != null && System.currentTimeMillis() - cached.timestamp < 300000) {
                 return cached.result
             }
         }
 
         val result = if (!aiEnabled || !modelsReady.get()) {
-            // Fallback to rule-based analysis
-            logger.debug("Using fallback rule-based analysis for user $userId")
             ruleBasedAnalysis(actions, userId)
         } else {
             try {
-                withTimeout(30000) { // 30 second timeout
+                withTimeout(15000) {
                     llmBasedAnalysis(actions, userId)
                 }
             } catch (e: TimeoutCancellationException) {
-                logger.warn("LLM analysis timed out for user $userId, using fallback")
+                logger.warn("Analysis timed out, using fallback")
                 ruleBasedAnalysis(actions, userId).copy(
-                    analysis = "LLM analysis timed out, using rule-based fallback"
+                    analysis = "Analysis timeout, using rule-based fallback"
                 )
             } catch (e: Exception) {
-                logger.error("LLM analysis failed for user $userId: ${e.message}", e)
+                logger.error("Analysis failed: ${e.message}", e)
                 ruleBasedAnalysis(actions, userId).copy(
-                    analysis = "LLM analysis failed: ${e.message}, using fallback"
+                    analysis = "Analysis failed: ${e.message}, using fallback"
                 )
             }
         }
 
         val finalResult = result.copy(processing_time_ms = System.currentTimeMillis() - startTime)
-
-        // Cache result
         analysisCache["$userId-$actionHash"] = CachedAnalysis(
             result = finalResult,
             timestamp = System.currentTimeMillis(),
             actionIdsHash = actionHash
         )
 
-        // Clean old cache entries
         if (analysisCache.size > 100) {
             val oldEntries = analysisCache.entries.filter {
-                System.currentTimeMillis() - it.value.timestamp > 3600000 // 1 hour
+                System.currentTimeMillis() - it.value.timestamp > 3600000
             }
             oldEntries.forEach { analysisCache.remove(it.key) }
         }
@@ -245,11 +265,10 @@ class ActionAnalysisService(
         val entity = HttpEntity(objectMapper.writeValueAsString(request), headers)
         val url = "$ollamaUrl/api/generate"
 
-        try {
+        return try {
             val response = restTemplate.postForObject(url, entity, Map::class.java)
             val responseText = response?.get("response") as? String ?: ""
-
-            return parseAnalysisResponse(responseText, userId)
+            parseAnalysisResponse(responseText, actions, userId)
         } catch (e: RestClientException) {
             logger.error("Ollama API call failed: ${e.message}", e)
             throw e
@@ -257,142 +276,146 @@ class ActionAnalysisService(
     }
 
     private fun buildAnalysisPrompt(actions: List<Action>, userId: Long): String {
-        // Limit actions to avoid token overflow (Llama 3.2 3B has 128k context, but keep reasonable)
-        val relevantActions = actions.takeLast(500)
+        val metrics = calculateActionMetrics(actions)
 
-        val actionSummary = relevantActions.joinToString("\n") { action ->
+        val recentActions = actions.takeLast(30).joinToString("\n") { action ->
             when (action) {
-                is AppAction -> "${action.performedAt}: APP ${action.app_name}"
+                is AppAction -> "  - App switch: ${action.app_name}"
                 is MouseAction -> {
-                    if (action.is_click) {
-                        "${action.performedAt}: MOUSE_CLICK at (${action.delta_x}, ${action.delta_y})"
-                    } else {
-                        "${action.performedAt}: MOUSE_MOVE to (${action.delta_x}, ${action.delta_y})"
-                    }
+                    if (action.is_click) "  - Click at (${action.delta_x}, ${action.delta_y})"
+                    else "  - Mouse move to (${action.delta_x}, ${action.delta_y})"
                 }
-                is KeyboardAction -> "${action.performedAt}: KEYBOARD input"
-                else -> "${action.performedAt}: UNKNOWN action"
+                is KeyboardAction -> "  - Key pressed: ${action.keyboard_key}"
+                else -> "  - Unknown action"
             }
         }
-
-        // Calculate basic stats for context
-        val appCount = actions.filterIsInstance<AppAction>().size
-        val mouseClicks = actions.filterIsInstance<MouseAction>().count { it.is_click }
-        val mouseMoves = actions.filterIsInstance<MouseAction>().count { !it.is_click }
-        val keyboardCount = actions.filterIsInstance<KeyboardAction>().size
 
         return """
-            Analyze these user actions for potential fraud, anomalies, or suspicious patterns.
-            
-            User ID: $userId
-            Time period: ${relevantActions.firstOrNull()?.performedAt} to ${relevantActions.lastOrNull()?.performedAt}
-            
-            Statistics:
-            - Total actions: ${relevantActions.size}
-            - App switches: $appCount
-            - Mouse clicks: $mouseClicks
-            - Mouse movements: $mouseMoves
-            - Keyboard inputs: $keyboardCount
-            - Click-to-move ratio: ${if (mouseMoves > 0) mouseClicks.toDouble() / mouseMoves else "N/A"}
-            
-            Action sequence:
-            $actionSummary
-            
-            Return ONLY valid JSON with this exact structure (no markdown, no extra text):
-            {
-                "is_anomalous": boolean,
-                "confidence": float between 0 and 1,
-                "fraud_probability": float between 0 and 1,
-                "issues": ["issue1", "issue2"],
-                "analysis": "brief explanation of findings",
-                "recommended_action": "none|warn|flag|block"
-            }
-            
-            Look for:
-            - Unusual patterns (too rapid actions, impossible sequences)
-            - Bot-like behavior (perfect timing, repetitive patterns)
-            - Potential fraud (unusual app access, strange navigation)
-            - Working hour violations
-            - Idle/login anomalies
-        """.trimIndent()
+You are a fraud detection system. Analyze user behavior and return ONLY valid JSON.
+
+User $userId behavior summary:
+- Total actions: ${actions.size}
+- Mouse clicks: ${metrics.clicks}
+- Mouse movements: ${metrics.moves}
+- Keyboard inputs: ${metrics.keys}
+- App switches: ${metrics.apps}
+- Duration: ${metrics.durationSecs} seconds
+- Click speed: ${"%.1f".format(metrics.clicksPerSecond)} clicks/second
+
+Recent actions:
+$recentActions
+
+Suspicious patterns to check:
+1. Too many clicks without mouse movement (bot-like)
+2. No keyboard activity but many clicks (automated bot)
+3. Extremely rapid actions (more than 5 clicks per second)
+4. Excessive app switching (more than 20 switches)
+5. Unusual patterns in recent actions
+
+Return ONLY valid JSON with this structure:
+{
+    "is_anomalous": true/false,
+    "confidence": 0.0-1.0,
+    "fraud_probability": 0.0-1.0,
+    "issues": ["issue1", "issue2"],
+    "analysis": "brief explanation",
+    "recommended_action": "none/warn/flag/block"
+}
+""".trimIndent()
     }
 
-    private fun parseAnalysisResponse(responseText: String, userId: Long): AnalysisResult {
+    private fun parseAnalysisResponse(responseText: String, actions: List<Action>, userId: Long): AnalysisResult {
         return try {
-            // Extract JSON from response (in case model added extra text)
-            val jsonStart = responseText.indexOf('{')
-            val jsonEnd = responseText.lastIndexOf('}') + 1
+            var cleanResponse = responseText.trim()
+            cleanResponse = cleanResponse.replace("```json", "").replace("```", "")
+
+            val jsonStart = cleanResponse.indexOf('{')
+            val jsonEnd = cleanResponse.lastIndexOf('}') + 1
             val jsonString = if (jsonStart >= 0 && jsonEnd > jsonStart) {
-                responseText.substring(jsonStart, jsonEnd)
+                cleanResponse.substring(jsonStart, jsonEnd)
             } else {
-                responseText
+                cleanResponse
             }
 
-            objectMapper.readValue<AnalysisResult>(jsonString)
-        } catch (e: Exception) {
-            logger.error("Failed to parse LLM response: ${e.message}\nResponse: $responseText")
-            // Return default analysis
+            val result = objectMapper.readValue<AnalysisResult>(jsonString)
+
             AnalysisResult(
-                is_anomalous = false,
-                confidence = 0.0,
-                fraud_probability = 0.0,
-                issues = listOf("Failed to parse AI response"),
-                analysis = "AI analysis failed to parse: ${e.message}",
-                recommended_action = "none"
+                is_anomalous = result.is_anomalous,
+                confidence = result.confidence.coerceIn(0.0, 1.0),
+                fraud_probability = result.fraud_probability.coerceIn(0.0, 1.0),
+                issues = result.issues.take(5),
+                analysis = result.analysis.ifEmpty {
+                    if (result.is_anomalous) "Suspicious patterns detected" else "Normal behavior"
+                },
+                recommended_action = when (result.recommended_action.lowercase()) {
+                    "block" -> "block"
+                    "flag" -> "flag"
+                    "warn" -> "warn"
+                    else -> "none"
+                }
             )
+        } catch (e: Exception) {
+            logger.error("Failed to parse response: ${e.message}\nResponse: $responseText")
+            val fallback = ruleBasedAnalysis(actions, userId)
+            fallback.copy(analysis = "AI response parsing failed: ${e.message}")
         }
+    }
+
+    private data class ActionMetrics(
+        val clicks: Int,
+        val moves: Int,
+        val keys: Int,
+        val apps: Int,
+        val durationSecs: Long,
+        val clicksPerSecond: Double
+    )
+
+    private fun calculateActionMetrics(actions: List<Action>): ActionMetrics {
+        val clicks = actions.filterIsInstance<MouseAction>().count { it.is_click }
+        val moves = actions.filterIsInstance<MouseAction>().count { !it.is_click }
+        val keys = actions.filterIsInstance<KeyboardAction>().size
+        val apps = actions.filterIsInstance<AppAction>().size
+
+        val timestamps = actions.map { it.performedAt.toEpochSecond(java.time.ZoneOffset.UTC) }
+        val durationSecs = if (timestamps.size > 1) timestamps.last() - timestamps.first() else 0L
+        val clicksPerSecond = if (durationSecs > 0) clicks.toDouble() / durationSecs else 0.0
+
+        return ActionMetrics(clicks, moves, keys, apps, durationSecs, clicksPerSecond)
     }
 
     private fun ruleBasedAnalysis(actions: List<Action>, userId: Long): AnalysisResult {
-        val mouseActions = actions.filterIsInstance<MouseAction>()
-        val keyboardActions = actions.filterIsInstance<KeyboardAction>()
-        val appActions = actions.filterIsInstance<AppAction>()
+        val metrics = calculateActionMetrics(actions)
 
         val issues = mutableListOf<String>()
         var fraudScore = 0.0
 
-        // Heuristic 1: Too many clicks without movement
-        val clicksWithNoMovement = mouseActions.count { it.is_click && it.delta_x.toInt() == 0 && it.delta_y.toInt() == 0 }
-        if (mouseActions.isNotEmpty() && clicksWithNoMovement.toDouble() / mouseActions.size > 0.8) {
-            issues.add("Suspicious: 80%+ clicks have no mouse movement")
+        if (metrics.clicksPerSecond > 5) {
+            issues.add("High click speed: ${"%.1f".format(metrics.clicksPerSecond)} clicks/second")
             fraudScore += 0.3
         }
+        if (metrics.clicksPerSecond > 10) {
+            issues.add("Extreme click speed: possible bot automation")
+            fraudScore += 0.5
+        }
 
-        // Heuristic 2: Unusual app switching frequency
-        if (appActions.size > 100 && actions.size < 500) {
-            issues.add("Unusual: High frequency of app switching (${appActions.size} switches)")
+        if (metrics.keys == 0 && metrics.clicks > 30) {
+            issues.add("No keyboard activity with ${metrics.clicks} mouse clicks")
+            fraudScore += 0.25
+        }
+
+        if (metrics.apps > 30 && metrics.clicks + metrics.keys < 50) {
+            issues.add("Excessive app switching (${metrics.apps} times) with minimal activity")
             fraudScore += 0.2
         }
 
-        // Heuristic 3: Bot-like timing (actions too uniform)
-        val timestamps = actions.map { it.performedAt.toEpochSecond(java.time.ZoneOffset.UTC) }
-        if (timestamps.size > 10) {
-            val differences = timestamps.zipWithNext { a, b -> b - a }.filter { it > 0 }
-            if (differences.isNotEmpty()) {
-                val stdDev = calculateStdDev(differences)
-                val mean = differences.average()
-                if (stdDev < mean * 0.1 && mean in 1.0..5.0) {
-                    issues.add("Bot-like: Actions have very uniform timing (std dev: $stdDev)")
-                    fraudScore += 0.4
-                }
-            }
+        if (metrics.durationSecs < 10 && metrics.clicks + metrics.keys > 80) {
+            issues.add("Suspicious: ${metrics.clicks + metrics.keys} actions in ${metrics.durationSecs} seconds")
+            fraudScore += 0.4
         }
 
-        // Heuristic 4: No keyboard activity but many clicks
-        if (keyboardActions.isEmpty() && mouseActions.size > 50) {
-            issues.add("Suspicious: No keyboard activity with ${mouseActions.size} mouse actions")
-            fraudScore += 0.2
-        }
-
-        // Heuristic 5: Extreme click speed
-        val clicks = mouseActions.filter { it.is_click }
-        if (clicks.size > 50 && timestamps.size > 1) {
-            val duration = timestamps.last() - timestamps.first()
-            val clicksPerSecond = if (duration > 0) clicks.size.toDouble() / duration else 0.0
-            if (clicksPerSecond > 10) {
-                issues.add("Suspicious: Extreme click speed - ${String.format("%.1f", clicksPerSecond)} clicks/second")
-                fraudScore += 0.5
-            }
+        if (metrics.clicks > 0 && metrics.moves == 0 && metrics.clicks > 20) {
+            issues.add("All clicks without mouse movement - possible automated clicking")
+            fraudScore += 0.35
         }
 
         val isAnomalous = fraudScore > 0.3
@@ -403,27 +426,24 @@ class ActionAnalysisService(
             else -> "none"
         }
 
+        val analysisText = if (isAnomalous) {
+            "Rule-based analysis detected suspicious patterns: ${issues.joinToString("; ")}"
+        } else {
+            "Rule-based analysis found no significant anomalies"
+        }
+
         return AnalysisResult(
             is_anomalous = isAnomalous,
             confidence = fraudScore.coerceIn(0.0, 1.0),
             fraud_probability = fraudScore,
             issues = issues,
-            analysis = "Rule-based analysis: ${if (isAnomalous) "Suspicious patterns detected" else "No anomalies found"}",
+            analysis = analysisText,
             recommended_action = recommendedAction
         )
     }
 
-    private fun calculateStdDev(numbers: List<Long>): Double {
-        if (numbers.isEmpty()) return 0.0
-        val mean = numbers.average()
-        val variance = numbers.map { (it - mean) * (it - mean) }.average()
-        return Math.sqrt(variance)
-    }
-
     fun isModelReady(): Boolean = modelsReady.get()
-
     fun getModelName(): String = if (modelsReady.get()) modelName else "fallback-rules"
-
     fun clearCache() {
         analysisCache.clear()
         logger.info("Analysis cache cleared")

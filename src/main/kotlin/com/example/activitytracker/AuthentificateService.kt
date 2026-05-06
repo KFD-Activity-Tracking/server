@@ -156,7 +156,7 @@ class JwtFilter(
             return
         }
 
-        println("DEBUG authHeader = ${authHeader}")
+        //println("DEBUG authHeader = ${authHeader}")
         val token = authHeader.substring(7)
 
         val username = try {

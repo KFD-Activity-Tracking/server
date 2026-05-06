@@ -47,13 +47,13 @@ class UserServiceImpl (
     override fun getDetailedByName(username: String): ProjectionUser? = userDao.findProjectionByUsername(username)
 
     override fun createUser(user: DtoCreateUserRequest) : DtoSimpleUserMap {
-        val userID = userDao.save(
-            Users(
-                username = user.username,
-                role = getRole(user.role),
-                passwordHash = user.hashPassword,
-            )
-        ).id.NOT_COMPLETED  // I think userDao.save loads Users.subordinates too, so if the graph is dense it loads the whole DB
+        val toCreate = Users(
+            username = user.username,
+            role = getRole(user.role),
+            passwordHash = user.hashPassword,
+            realName = user.realName,
+        )
+        val userID = userDao.save(toCreate).id
 
         return userDao.findProjectionById(userID)?.toDtoSimpleUserMap()
             ?: throw HelloException("unexpected error in UserService.createUser")
@@ -79,10 +79,9 @@ class UserServiceImpl (
             }
         }
 
-        val entity = user.toUserEntity()
-        entity.passwordHash = user_old.passwordHash
+        val user_new = user.toUserEntity().also { it.passwordHash = user_old.passwordHash }
 
-        val userId = userDao.save(entity).id.NOT_COMPLETED //same
+        val userId = userDao.save(user_new).id
 
         return userDao.findProjectionById(userId)?.toDtoSimpleUserMap()
             ?: throw HelloException("unexpected user with id ${user.id} not found")
