@@ -84,7 +84,7 @@ class StatisticsServiceImpl (
         val heatMapWidth = 100
         val heatMapHeight = 100
         var heat_map = MutableList<Int>(heatMapHeight*heatMapWidth, {0})
-        mouse_actions.forEach {
+        mouse_actions.filter { it.is_click }.forEach {
             val mapx = (it.delta_x*heatMapWidth).toInt().coerceIn(0, heatMapWidth-1)
             val mapy = (it.delta_y*heatMapHeight).toInt().coerceIn(0, heatMapHeight-1)
             val realIx = mapy*heatMapWidth+mapx
@@ -117,7 +117,18 @@ class StatisticsServiceImpl (
         statistic.keyboard_to_mouse_coef = keyboard_actions.size.toFloat()/max(1,statistic.mouse_clicks)
 
 
-        statistic.active_time = 0L.NOT_COMPLETED
+
+
+        var activeTimeMillis = 0L
+        val activeWaitMillis = 1*60*1000.toLong()
+        for (i in 0..(actions.size-2)) {
+            val deltaMillis = actions[i+1].performedAt.toInstant(ZoneOffset.UTC).toEpochMilli() -
+                                actions[i].performedAt.toInstant(ZoneOffset.UTC).toEpochMilli()
+            activeTimeMillis += min(deltaMillis, activeWaitMillis)
+        }
+
+
+        statistic.active_time = activeTimeMillis/1000
 
         statistic.idle_time = all_time_seconds - statistic.active_time
 
