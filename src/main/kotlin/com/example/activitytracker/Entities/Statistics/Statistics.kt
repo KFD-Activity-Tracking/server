@@ -104,6 +104,10 @@ class Statistics : BasicStatistics() {
 
     var number_of_breaks: Int = 0
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    var archived: Boolean = false
+
+    var archived_at: LocalDateTime? = null
 
 }
 

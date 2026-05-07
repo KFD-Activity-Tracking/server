@@ -22,7 +22,10 @@ class StatisticsController(
 ) {
 
     @GetMapping("/from/{userId}")
-    fun getStatisticsFromUser(@PathVariable userId: Long) = statisticsService.getAllFromUser(userId)
+    fun getStatisticsFromUser(
+        @PathVariable userId: Long,
+        @org.springframework.web.bind.annotation.RequestParam(defaultValue = "false") archived: Boolean,
+    ) = statisticsService.getAllFromUser(userId, archived)
 
     @PostMapping("/debug/collect/{userId}")
     fun collectStatistics(@PathVariable userId: Long) = statisticsService.collectStatsForUser(userId)

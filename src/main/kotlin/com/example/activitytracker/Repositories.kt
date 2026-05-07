@@ -59,8 +59,20 @@ interface StatisticsRepository : LongKeyRepository<Statistics> {
     @Query("SELECT s FROM Statistics s WHERE s.user_id.id = :userId")
     fun findAllByUserId(@Param("userId") userId: Long): List<Statistics>
 
+    @Query("SELECT s FROM Statistics s WHERE s.user_id.id = :userId AND s.archived = :archived")
+    fun findAllByUserIdAndArchived(
+        @Param("userId") userId: Long,
+        @Param("archived") archived: Boolean,
+    ): List<Statistics>
+
     @Query("SELECT s FROM Statistics s WHERE s.status = :status")
     fun findAllByStatus(@Param("status") status: SessionStatus): List<Statistics>
+
+    @Query("SELECT s FROM Statistics s WHERE s.status = :status AND s.archived = false AND s.end_time < :cutoff")
+    fun findCompletedBeforeAndNotArchived(
+        @Param("status") status: SessionStatus,
+        @Param("cutoff") cutoff: java.time.LocalDateTime,
+    ): List<Statistics>
 
 }
 
