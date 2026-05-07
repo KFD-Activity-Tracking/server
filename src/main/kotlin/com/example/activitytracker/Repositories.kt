@@ -3,6 +3,7 @@ package com.example.activitytracker
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.CrudRepository
 import org.springframework.data.repository.NoRepositoryBean
+import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
 
 
@@ -14,14 +15,16 @@ interface LongKeyRepository<T> : CrudRepository<T, Long>
 interface ActionRepository : LongKeyRepository<Action> {
 
     @Query("SELECT a FROM Action a WHERE TYPE(a) = MouseAction")
-    fun GetMouseActions(): List<MouseAction>
+    fun getMouseActions(): List<MouseAction>
 
     @Query("SELECT a FROM Action a WHERE TYPE(a) = KeyboardAction")
-    fun GetKeyboardActions(): List<KeyboardAction>
+    fun getKeyboardActions(): List<KeyboardAction>
 
     @Query("SELECT a FROM Action a WHERE TYPE(a) = AppAction")
-    fun GetAppActions(): List<AppAction>
+    fun getAppActions(): List<AppAction>
 
+    @Query("SELECT a FROM Action a WHERE a.user.id = :userId")
+    fun findAllByUserId(@Param("userId") userId: Long): List<Action>
 
     fun findFirstByOrderByPerformedAtAsc(): Action?
 
@@ -46,6 +49,18 @@ interface UserRepository : LongKeyRepository<Users> {
 
 @Repository
 interface StatisticsRepository : LongKeyRepository<Statistics> {
+
+    @Query("SELECT s FROM Statistics s WHERE s.user_id.id = :userId AND s.status = :status")
+    fun findByUserIdAndStatus(
+        @Param("userId") userId: Long,
+        @Param("status") status: SessionStatus
+    ): Statistics?
+
+    @Query("SELECT s FROM Statistics s WHERE s.user_id.id = :userId")
+    fun findAllByUserId(@Param("userId") userId: Long): List<Statistics>
+
+    @Query("SELECT s FROM Statistics s WHERE s.status = :status")
+    fun findAllByStatus(@Param("status") status: SessionStatus): List<Statistics>
 
 }
 

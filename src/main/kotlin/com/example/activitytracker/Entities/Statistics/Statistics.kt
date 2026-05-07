@@ -1,9 +1,12 @@
 package com.example.activitytracker
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonManagedReference
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
@@ -14,6 +17,8 @@ import jakarta.persistence.MappedSuperclass
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import java.time.LocalDateTime
+
+enum class SessionStatus { ACTIVE, COMPLETED, INTERRUPTED }
 
 // Class responsible for storing statistic over some period of time
 
@@ -33,6 +38,7 @@ class BasicStatistics (
     @Column(name="end_time")
     var end_time: LocalDateTime = LocalDateTime.now()
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "user_id")
     var user_id : Users? = null
@@ -56,9 +62,8 @@ class Statistics : BasicStatistics() {
 
 
 
-    var date : LocalDateTime = LocalDateTime.now()
-
-
+    @Enumerated(EnumType.STRING)
+    var status: SessionStatus = SessionStatus.ACTIVE
 
     var active_time: Long = 0
 
@@ -82,10 +87,6 @@ class Statistics : BasicStatistics() {
     var average_gpu: Double = 0.0
     var average_ram: Double = 0.0
 
-
-
-    var login_time: Long = 0
-    var logout_time: Long = 0
 
 
     // string represents x*y heatmap, each byte describes the density of clicks (per minute) in the cell's area

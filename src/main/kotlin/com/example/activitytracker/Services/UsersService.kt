@@ -22,10 +22,6 @@ interface UserService {
 }
 
 
-interface UsersProjection{
-
-}
-
 @Component
 class UserServiceImpl (
     var userDao : UserRepository,

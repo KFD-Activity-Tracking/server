@@ -1,6 +1,5 @@
 package com.example.activitytracker
 
-import org.springframework.boot.CommandLineRunner
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.runApplication
@@ -20,7 +19,6 @@ import org.springframework.web.client.RestTemplate
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler
 import java.time.Duration
 import java.time.LocalDateTime
-import kotlin.random.Random
 
 @SpringBootApplication
 @ConfigurationPropertiesScan
@@ -46,21 +44,10 @@ class AppConfig {
     }
 }
 
-val <T> T.NOT_COMPLETED get(): T {
-    val is_testing = true
-    if (!is_testing){
-        throw NotImplementedError("TODO!!!!")
-    }
-    return this
-}
-
-
 @Component
-class StartupTasks (
-    val userController: UserController,
+class StartupTasks(
     val userService: UserService,
-    val actionService: ActionService,
-    val statsService: StatisticsService,
+    val passwordEncoder: org.springframework.security.crypto.password.PasswordEncoder,
 ) {
 
     var used = false
@@ -68,45 +55,17 @@ class StartupTasks (
     @Scheduled(fixedDelay = 200)
     @Transactional
     fun once() {
-        if (used){
-            return
-        }
+        if (used) return
         used = true
-        println("RUNNING ONE-TIME TASKS")
-
 
         try {
-            val ers = userController.addUser(DtoAuthRequest("user", "user", "USER"))
-            println("ADDED USER ${ers.id}, ${ers.username}")
-        } catch (e: Exception) {
-            println("ERROR ADDING USER: : : :: $e ")
-        }
-
-
-        val ers = userService.getUserByName("user") ?: throw NotFoundException("User not found IN STARTUP")
-
-        ers.realName = "Ivan Ivanov CanBeCyrillicIThink"
-        userService.updateUser(ers)
-        val random = Random(System.currentTimeMillis())
-
-        actionService.saveAllActions(List<Action>(200, {
-            MouseAction().also { it.user = Users(id=ers.id)
-                it.delta_x = random.nextFloat()
-                it.delta_y = random.nextFloat()
-                it.is_click = random.nextBoolean()
-            }
-        }))
-        statsService.collectAllStatistics()
-
-        actionService.saveAllActions(List<Action>(200, {
-            MouseAction().also { it.user = Users(id=ers.id)
-                it.delta_x = random.nextFloat()
-                it.delta_y = random.nextFloat()
-                it.is_click = random.nextBoolean()
-            }
-        }))
-
-        println("ADDED actions for  ${ers.id}, ${ers.username}")
+            userService.createUser(DtoCreateUserRequest(
+                username = "user",
+                realName = "Ivan Ivanov CanBeCyrillicIThink",
+                role = "USER",
+                hashPassword = passwordEncoder.encode("user")
+            ))
+        } catch (_: Exception) { }
     }
 
 }

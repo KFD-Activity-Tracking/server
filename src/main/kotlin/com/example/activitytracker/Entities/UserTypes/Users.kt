@@ -28,6 +28,7 @@ class Users(
     @Column(name = "role")
     var role: String = "",
 
+    @JsonIgnore
     @Column(name = "passwordHash")
     var passwordHash: String = "",
 

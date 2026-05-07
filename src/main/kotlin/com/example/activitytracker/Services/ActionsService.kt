@@ -1,9 +1,6 @@
 package com.example.activitytracker
 
 import org.springframework.stereotype.Service
-import org.springframework.web.bind.annotation.RequestHeader
-import kotlin.collections.addAll
-import kotlin.collections.iterator
 
 
 interface ActionService {
@@ -68,7 +65,7 @@ class ActionServiceImpl(
 
     override fun getAllActions(): List<Action> = actionDao.findAll().toList()
 
-    override fun getAllActionsFromUser(userId: Long): List<Action> = actionDao.findAll().filter { it.user.id == userId }.toList()
+    override fun getAllActionsFromUser(userId: Long): List<Action> = actionDao.findAllByUserId(userId)
     override fun removeAllById(actions: List<Long>) = actionDao.deleteAllById(actions)
 
 
