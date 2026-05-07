@@ -296,42 +296,29 @@ class ActionAnalysisService(
     private fun buildAnalysisPrompt(actions: List<Action>, userId: Long): String {
         val metrics = calculateActionMetrics(actions)
 
-        val recentActions = actions.takeLast(30).joinToString("\n") { action ->
+        val recentActions = actions.takeLast(20).joinToString("\n") { action ->
             when (action) {
-                is AppAction -> "  - App switch: ${action.app_name}"
-                is MouseAction -> {
-                    if (action.is_click) "  - Click at (${action.delta_x}, ${action.delta_y})"
-                    else "  - Mouse move to (${action.delta_x}, ${action.delta_y})"
-                }
-                is KeyboardAction -> "  - Key pressed: ${action.keyboard_key}"
-                else -> "  - Unknown action"
+                is AppAction -> "  app_switch: ${action.app_name}"
+                is MouseAction -> if (action.is_click) "  click" else "  move"
+                is KeyboardAction -> "  key"
+                else -> "  other"
             }
         }
 
         return """
-You are a fraud detection system. Analyze user behavior and return ONLY valid JSON.
+You are an employee activity monitor. Detect anomalies in desktop session data.
+Respond with ONLY a JSON object — no markdown, no extra text.
 
-User $userId behavior:
-- Total actions: ${actions.size}
-- Mouse clicks: ${metrics.clicks}
-- Mouse movements: ${metrics.moves}
-- Keyboard inputs: ${metrics.keys}
-- App switches: ${metrics.apps}
-- Duration: ${metrics.durationSecs} seconds
-- Click speed: ${"%.1f".format(metrics.clicksPerSecond)} clicks/second
+User $userId session:
+actions=${actions.size} clicks=${metrics.clicks} moves=${metrics.moves} keys=${metrics.keys} apps=${metrics.apps} duration=${metrics.durationSecs}s click_rate=${"%.2f".format(metrics.clicksPerSecond)}/s
 
-Recent actions:
+Recent:
 $recentActions
 
-Return ONLY valid JSON:
-{
-    "is_anomalous": true/false,
-    "confidence": 0.0-1.0,
-    "fraud_probability": 0.0-1.0,
-    "issues": ["issue1", "issue2"],
-    "analysis": "brief explanation",
-    "recommended_action": "none/warn/flag/block"
-}
+Anomaly signals: click_rate>5 suggests automation; clicks with no moves suggests scripted input; no keys with many clicks is suspicious.
+
+JSON format (fill values, keep keys exact):
+{"is_anomalous":false,"confidence":0.0,"fraud_probability":0.0,"issues":[],"analysis":"normal session","recommended_action":"none"}
 """.trimIndent()
     }
 
@@ -399,32 +386,31 @@ Return ONLY valid JSON:
         val issues = mutableListOf<String>()
         var fraudScore = 0.0
 
-        if (metrics.clicksPerSecond > 5) {
-            issues.add("High click speed: ${"%.1f".format(metrics.clicksPerSecond)} clicks/second")
-            fraudScore += 0.3
-        }
         if (metrics.clicksPerSecond > 10) {
-            issues.add("Extreme click speed: possible bot automation")
+            issues.add("Критически высокая частота кликов: ${"%.1f".format(metrics.clicksPerSecond)} кл/сек — возможна автоматизация")
             fraudScore += 0.5
+        } else if (metrics.clicksPerSecond > 5) {
+            issues.add("Высокая частота кликов: ${"%.1f".format(metrics.clicksPerSecond)} кл/сек")
+            fraudScore += 0.3
         }
 
         if (metrics.keys == 0 && metrics.clicks > 30) {
-            issues.add("No keyboard activity with ${metrics.clicks} mouse clicks")
+            issues.add("Нет активности клавиатуры при ${metrics.clicks} кликах мышью")
             fraudScore += 0.25
         }
 
         if (metrics.apps > 30 && metrics.clicks + metrics.keys < 50) {
-            issues.add("Excessive app switching (${metrics.apps} times) with minimal activity")
+            issues.add("Частое переключение приложений (${metrics.apps} раз) при низкой общей активности")
             fraudScore += 0.2
         }
 
         if (metrics.durationSecs < 10 && metrics.clicks + metrics.keys > 80) {
-            issues.add("Suspicious: ${metrics.clicks + metrics.keys} actions in ${metrics.durationSecs} seconds")
+            issues.add("Подозрительно: ${metrics.clicks + metrics.keys} действий за ${metrics.durationSecs} секунд")
             fraudScore += 0.4
         }
 
-        if (metrics.clicks > 0 && metrics.moves == 0 && metrics.clicks > 20) {
-            issues.add("All clicks without mouse movement - possible automated clicking")
+        if (metrics.clicks > 20 && metrics.moves == 0) {
+            issues.add("Клики без движения мыши — возможна автоматизация")
             fraudScore += 0.35
         }
 
@@ -437,9 +423,9 @@ Return ONLY valid JSON:
         }
 
         val analysisText = if (isAnomalous) {
-            "Rule-based analysis detected suspicious patterns: ${issues.joinToString("; ")}"
+            "Выявлены подозрительные паттерны поведения"
         } else {
-            "Rule-based analysis found no significant anomalies"
+            "Поведение пользователя соответствует норме"
         }
 
         return AnalysisResult(
@@ -451,6 +437,18 @@ Return ONLY valid JSON:
             recommended_action = recommendedAction
         )
     }
+
+    fun serializeEval(analysis: AnalysisResult, actionsCount: Int): String =
+        objectMapper.writeValueAsString(mapOf(
+            "model"              to getModelName(),
+            "actions_count"      to actionsCount,
+            "is_anomalous"       to analysis.is_anomalous,
+            "fraud_probability"  to analysis.fraud_probability,
+            "confidence"         to analysis.confidence,
+            "issues"             to analysis.issues,
+            "analysis"           to analysis.analysis,
+            "recommended_action" to analysis.recommended_action,
+        ))
 
     fun isModelReady(): Boolean = modelsReady.get()
     fun getModelName(): String = if (modelsReady.get()) modelName else "fallback-rules"
