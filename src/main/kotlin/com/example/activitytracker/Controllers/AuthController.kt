@@ -9,7 +9,6 @@ import com.example.activitytracker.JwtService
 import com.example.activitytracker.NotFoundException
 import com.example.activitytracker.UserService
 import org.springframework.security.crypto.password.PasswordEncoder
-import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -28,29 +27,6 @@ interface AuthController {
 
 
 @RestController
-@RequestMapping("/api/info")
-class InfoController {
-
-    @GetMapping("/pages")
-    fun getAllPagesDescriptions() : List<Pair<String, String>>{
-        val res = mutableMapOf<String, String>()
-        val prefix = "http://localhost:8765/"
-
-        res["mainPage: basic functions"] = prefix+"frontend/mainpagev1"
-        res["aka postman: test requests"] = prefix+"frontend/postman"
-        res["directory: show all files"] = prefix+"frontend/paths"
-        res["test hello world: some test"] = prefix+"frontend/hello/world"
-        res["watch statistics"] = prefix+"frontend/statistics/ui"
-        res["mainPageV2"] = prefix+"frontend/mainpagev2"
-
-        return res.toList()
-    }
-
-}
-
-
-
-@RestController
 @RequestMapping("/auth")
 class AuthControllerImpl (
 
@@ -59,15 +35,6 @@ class AuthControllerImpl (
     val jwtService: JwtService,
 
     ) : AuthController {
-
-
-
-    @PostMapping("/test-json")
-    fun testJson(@RequestBody body: Map<String, String>): Map<String, String> {
-        println("DEBUG Received JSON: $body")
-        return mapOf("status" to "success", "received" to body.toString())
-    }
-
 
     @PostMapping("/login")
     override fun login (@RequestBody request: DtoAuthRequest) : DtoTokenResponse {

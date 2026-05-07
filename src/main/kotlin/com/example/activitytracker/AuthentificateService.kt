@@ -31,7 +31,7 @@ class SecurityConfig {
     fun securityFilterChain(http: HttpSecurity, jwtFilter: JwtFilter): SecurityFilterChain {
         http.csrf { it.disable() }
         http.authorizeHttpRequests {
-                it.requestMatchers("/auth/**", "/frontend/**").permitAll()
+                it.requestMatchers("/auth/**").permitAll()
                 it.requestMatchers("/*.css", "/*.js").permitAll()
                 it.anyRequest().authenticated()
             }
@@ -81,8 +81,8 @@ class JwtServiceImpl(
 ) : JwtService {
 
 
-    fun GetExspiration(): Date {
-        val current = currentTimeMillis() + 24.hours.inWholeMilliseconds;
+    fun getExpiration(): Date {
+        val current = currentTimeMillis() + 24.hours.inWholeMilliseconds
         return Date(current)
     }
 
@@ -98,7 +98,7 @@ class JwtServiceImpl(
         val token = builder
             .setSubject(username)
             .setIssuedAt(Date())
-            .setExpiration(GetExspiration())
+            .setExpiration(getExpiration())
             .signWith(io.jsonwebtoken.SignatureAlgorithm.HS512, jwtKey.key)
             .compact()
 
@@ -156,14 +156,11 @@ class JwtFilter(
             return
         }
 
-        //println("DEBUG authHeader = ${authHeader}")
         val token = authHeader.substring(7)
 
         val username = try {
             jwtService.extractUsername(token)
-        } catch (e: Exception){
-            println(e.message)
-
+        } catch (_: Exception) {
             filterChain.doFilter(request, response)
             return
         }
