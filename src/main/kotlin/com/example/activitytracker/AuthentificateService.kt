@@ -32,7 +32,7 @@ class SecurityConfig {
         http.csrf { it.disable() }
         http.authorizeHttpRequests {
                 it.requestMatchers("/auth/**").permitAll()
-                it.requestMatchers("/*.css", "/*.js").permitAll()
+                it.requestMatchers("/", "/index.html", "/assets/**", "/*.css", "/*.js", "/*.ico", "/*.png").permitAll()
                 it.anyRequest().authenticated()
             }
 
