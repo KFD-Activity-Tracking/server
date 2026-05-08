@@ -35,19 +35,29 @@ class UserController(
 
 
     @GetMapping("/all")
-    fun getAllUsers() = userService.getAllUsers();  //returns List<User>
+    fun getAllUsers(@RequestHeader("Authorization") authHeader: String): List<DtoSimpleUserMap> {
+        val caller = jwtService.extractUserFromHeader(authHeader)
+        return userService.getAllUsers(caller.id, caller.role)
+    }
 
     @PostMapping("/add")
-    fun addUser(@RequestBody userAuth: DtoAuthRequest) : DtoSimpleUserMap {
-        if (userService.getUserByName(userAuth.username) != null) {
+    fun addUser(
+        @RequestHeader("Authorization") authHeader: String,
+        @RequestBody userAuth: DtoAuthRequest,
+    ): DtoSimpleUserMap {
+        val caller = jwtService.extractUserFromHeader(authHeader)
+        if (userService.getUserByName(userAuth.username) != null)
             throw AlreadyExistsException("user ${userAuth.username} already exists")
-        }
 
-        val hashedPass = passwordEncoder.encode(userAuth.password);
+        val realName = userAuth.realName.ifBlank { userAuth.username }
+        val created = userService.createUser(
+            DtoCreateUserRequest(userAuth.username, realName, userAuth.role, passwordEncoder.encode(userAuth.password))
+        )
 
-        val createRq = DtoCreateUserRequest(userAuth.username, userAuth.username, userAuth.role, hashedPass)
+        val assignTo = if (caller.role == "MANAGER") caller.id else userAuth.managerId
+        if (assignTo != null) userService.addSubordinate(assignTo, created.id)
 
-        return userService.createUser(createRq)
+        return created
     }
 
 

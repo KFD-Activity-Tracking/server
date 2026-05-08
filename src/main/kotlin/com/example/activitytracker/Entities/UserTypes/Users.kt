@@ -127,8 +127,9 @@ data class DtoSimpleUserMap (
 data class DtoAuthRequest(
     val username: String,
     val password: String,
-    //for register only [ADMIN, USER, MANAGER]
     val role: String = "",
+    val realName: String = "",
+    val managerId: Long? = null,
 )
 
 

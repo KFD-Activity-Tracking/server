@@ -58,14 +58,28 @@ class StartupTasks(
         if (used) return
         used = true
 
-        try {
-            userService.createUser(DtoCreateUserRequest(
-                username = "user",
-                realName = "Ivan Ivanov CanBeCyrillicIThink",
-                role = "USER",
-                hashPassword = passwordEncoder.encode("user")
-            ))
-        } catch (_: Exception) { }
+        fun create(username: String, realName: String, role: String) =
+            try {
+                userService.createUser(DtoCreateUserRequest(username, realName, role, passwordEncoder.encode(username)))
+            } catch (_: Exception) { null }
+
+        fun link(managerId: Long?, subId: Long?) {
+            if (managerId != null && subId != null)
+                try { userService.addSubordinate(managerId, subId) } catch (_: Exception) {}
+        }
+
+        create("admin",    "Администратор",       "ADMIN")
+        val m1 = create("manager1", "Менеджер Алексей",   "MANAGER")
+        val m2 = create("manager2", "Менеджер Мария",     "MANAGER")
+        val u1 = create("user1",    "Иванов Иван",        "USER")
+        val u2 = create("user2",    "Петрова Анна",       "USER")
+        val u3 = create("user3",    "Сидоров Олег",       "USER")
+        val u4 = create("user4",    "Козлова Наталья",    "USER")
+
+        link(m1?.id, u1?.id)
+        link(m1?.id, u2?.id)
+        link(m2?.id, u3?.id)
+        link(m2?.id, u4?.id)
     }
 
 }

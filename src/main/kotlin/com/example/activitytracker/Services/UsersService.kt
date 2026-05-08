@@ -11,7 +11,7 @@ interface UserService {
 
     //read requests
     fun getUserById(id: Long): DtoSimpleUserMap?
-    fun getAllUsers(): List<DtoSimpleUserMap>
+    fun getAllUsers(callerId: Long, callerRole: String): List<DtoSimpleUserMap>
     fun getUserByName(name: String): DtoSimpleUserMap?
     fun getDetailedByName(username: String) : ProjectionUser?
 
@@ -19,6 +19,7 @@ interface UserService {
     fun createUser(user: DtoCreateUserRequest) : DtoSimpleUserMap
     fun deleteUser(user: Long)
     fun updateUser(user: DtoSimpleUserMap) : DtoSimpleUserMap
+    fun addSubordinate(managerId: Long, subordinateId: Long)
 }
 
 
@@ -33,8 +34,11 @@ class UserServiceImpl (
             .getOrElse { throw NotFoundException("no user with id $id") }
             .toDtoSimpleUserMap()
 
-    override fun getAllUsers(): List<DtoSimpleUserMap> =
-        userDao.findAll().map { it.toDtoSimpleUserMap() }
+    override fun getAllUsers(callerId: Long, callerRole: String): List<DtoSimpleUserMap> {
+        if (callerRole == "ADMIN") return userDao.findAll().map { it.toDtoSimpleUserMap() }
+        val manager = userDao.findById(callerId).orElse(null) ?: return emptyList()
+        return userDao.findAllById(manager.subordinates.map { it.id }).map { it.toDtoSimpleUserMap() }
+    }
 
 
     override fun getUserByName(name: String): DtoSimpleUserMap? =
@@ -62,6 +66,18 @@ class UserServiceImpl (
         }
     }
 
+
+    @org.springframework.transaction.annotation.Transactional
+    override fun addSubordinate(managerId: Long, subordinateId: Long) {
+        val manager = userDao.findById(managerId).orElse(null)
+            ?: throw NotFoundException("Manager $managerId not found")
+        val sub = userDao.findById(subordinateId).orElse(null)
+            ?: throw NotFoundException("User $subordinateId not found")
+        if (manager.subordinates.none { it.id == subordinateId }) {
+            manager.subordinates.add(sub)
+            userDao.save(manager)
+        }
+    }
 
     //just id is enough
     override fun deleteUser(user: Long) = userDao.deleteById(user)
