@@ -38,3 +38,6 @@ out/
 
 ### Kotlin ###
 .kotlin
+
+### Generated frontend (built by build-all.sh, do not commit) ###
+src/main/resources/static/
