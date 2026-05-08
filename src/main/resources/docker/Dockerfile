@@ -1,92 +1,12 @@
-
-
-
-
-
 FROM eclipse-temurin:17-jdk-alpine
-#FROM openjdk:17-jdk-slim
 
 LABEL authors='LemonOG, MP'
 LABEL version='0.1'
 
-
 WORKDIR /release
 
-
 COPY build/libs/*.jar app.jar
-
-
-
 
 EXPOSE 8765
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
